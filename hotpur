@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# get base dir regardless of execution location
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+SOURCE=$([[ "$SOURCE" == /* ]] && echo "$SOURCE" || echo "$PWD/${SOURCE#./}")
+basedir=$(dirname "$SOURCE")
+. "$basedir"/scripts/init.sh
+
+hotpurstash() {
+  STASHED=$(git stash)
+}
+
+hotpurunstash() {
+  if [[ "$STASHED" != "No local changes to save" ]]; then
+    git stash pop
+  fi
+}
+
+case "$1" in
+"p" | "patch" | "apply")
+  (
+    set -e
+    cd "$basedir"
+    git submodule update --init --progress
+    scripts/apply.sh "$basedir"
+  )
+  ;;
+"b" | "bu" | "build")
+  (
+    basedir
+    ./gradlew clean build publishToMavenLocal
+  )
+  ;;
+
+"rb" | "rbp" | "rebuild")
+  (
+    set -e
+    cd "$basedir"
+    scripts/rebuildpatches.sh "$basedir"
+  )
+  ;;
+"am" | "amend")
+  (
+    cd "$basedir"/Hotpur-API/
+    git add .
+    git commit --amend --no-edit
+    cd "$basedir"/Hotpur-Server/
+    git add .
+    git commit --amend --no-edit
+    cd "$basedir"/Hotpur-fabric-loader/
+    git add .
+    git commit --amend --no-edit
+    cd "$basedir"
+    scripts/rebuildpatches.sh "$basedir"
+  )
+  ;;
+"up" | "upstream")
+  (
+    cd "$basedir"
+    git submodule update --init --progress
+    scripts/upstream.sh "$2"
+  )
+  ;;
+"jar" | "hotpurclip")
+  (
+    basedir
+    cd "$basedir"
+    git submodule update --init --progress
+    if [ "$2" != "fast" ]; then
+      scripts/upstream.sh
+    fi
+    ./scripts/apply.sh "$basedir" || exit 1
+    cd "$basedir"
+    ./gradlew clean build publishToMavenLocal
+    ./scripts/makePaperclip.sh
+  )
+  ;;
+*)
+  echo "Hotpur build tool command. This provides a variety of commands to build and manage the Hotpur build"
+  echo "environment. For all of the functionality of this command to be available, you must first run the"
+  echo "'setup' command. View below for details. For essential building and patching, you do not need to do the setup."
+  echo ""
+  echo " Normal commands:"
+  echo "  * p, patch        | Apply all patches to top of Hotpur without building it"
+  echo "  * b, build        | Build Hotpur API and Server"
+  echo "  * rb, rebuild     | Rebuild patches"
+  echo "  * am, amend       | Amend current edits to last patches"
+  echo "  * up, upstream    | Build Purpur upstream, pass arg up to update Purpur"
+  echo "  * jar, hotperclip | Apply all patches and build the project, hotpur-paperclip.jar will be output"
+  ;;
+esac
+
+unset -f hotpurstash
+unset -f hotpurunstash
