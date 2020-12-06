@@ -29,6 +29,7 @@ cd "$basedir/Purpur/" || exit
 
 ./purpur up
 ./purpur patch
+git reset --hard
 
 cd "Purpur-Server" || exit
 mcVer=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=minecraft_version | sed -n -e '/^\[.*\]/ !{ /^[0-9]/ { p; q } }')
