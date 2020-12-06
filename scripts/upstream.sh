@@ -11,8 +11,9 @@ done
 git submodule update --init --progress
 if [[ "$1" == up* ]]; then
   (
+    echo "Updating submodules"
     cd "$basedir/Purpur/" || exit
-    git fetch && git reset --hard origin/master
+    git fetch && git reset --hard origin/ver/1.16.4
     cd ../
     git add Purpur
 
@@ -63,4 +64,3 @@ fi
 
 tag Purpur-API $forcetag
 tag Purpur-Server $forcetag
-tag Purpur-fabric-loader $forcetag
