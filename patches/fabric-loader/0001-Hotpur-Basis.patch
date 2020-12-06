@@ -1723,10 +1723,10 @@ index 0000000..cd4e55f
 +}
 diff --git a/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 new file mode 100644
-index 0000000..f0daa4a
+index 0000000..3881a31
 --- /dev/null
 +++ b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
-@@ -0,0 +1,396 @@
+@@ -0,0 +1,409 @@
 +package com.ishland.hotpur.fabricloader;
 +
 +import com.google.common.base.Throwables;
@@ -1789,9 +1789,22 @@ index 0000000..f0daa4a
 +	}
 +
 +	public static Path setup() throws IOException, CompressorException, InvalidHeaderException {
++		long startTime = System.nanoTime();
 +		checkBuildData();
 +		applyMappingsAndPatches();
++		preloadClasses();
++		System.err.println(String.format("Hotpur server setup completed in %.2fms", (System.nanoTime() - startTime) / 1_000_000.0));
 +		return cacheDirectory.resolve("Minecraft").resolve(minecraftVersion + "-patched.jar");
++	}
++
++	private static void preloadClasses() {
++		try {
++			Class.forName("org.apache.logging.log4j.core.lookup.EventLookup");
++			Class.forName("org.apache.logging.log4j.core.lookup.LowerLookup");
++			Class.forName("org.apache.logging.log4j.core.lookup.UpperLookup");
++		} catch (ClassNotFoundException e) {
++			e.printStackTrace();
++		}
 +	}
 +
 +	private static void applyMappingsAndPatches() throws IOException, CompressorException, InvalidHeaderException {
@@ -2136,6 +2149,18 @@ index 9959502..ed01879 100644
  		}
  
  		Optional<GameProviderHelper.EntrypointResult> entrypointResult = GameProviderHelper.findFirstClass(loader, entrypointClasses);
+diff --git a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
+index 93988b2..effd37b 100644
+--- a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
++++ b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
+@@ -52,6 +52,7 @@ public final class Knot extends FabricLauncherBase {
+ 	}
+ 
+ 	protected void init(String[] args) {
++
+ 		setProperties(properties);
+ 
+ 		// configure fabric vars
 diff --git a/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java b/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java
 index 0a3f09e..cfa59bb 100644
 --- a/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java
