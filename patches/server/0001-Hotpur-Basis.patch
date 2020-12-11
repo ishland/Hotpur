@@ -724,7 +724,7 @@ index 000000000..d23e23635
 +
 +}
 diff --git a/src/main/java/net/pl3x/purpur/PurpurConfig.java b/src/main/java/net/pl3x/purpur/PurpurConfig.java
-index 674d06bfb..da1bbcddb 100644
+index 179143400..ab8710847 100644
 --- a/src/main/java/net/pl3x/purpur/PurpurConfig.java
 +++ b/src/main/java/net/pl3x/purpur/PurpurConfig.java
 @@ -180,7 +180,7 @@ public class PurpurConfig {
@@ -767,7 +767,7 @@ index 3dec164f6..9ffcff8ef 100644
          Bukkit.setServer(this);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index a5394b04a..0535ffb82 100644
+index a5394b04a..f058ac5c1 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -10,6 +10,8 @@ import java.util.List;
@@ -797,8 +797,9 @@ index a5394b04a..0535ffb82 100644
 -
 +                if (System.getProperty("IReallyKnowWhatIAmDoingISwear") == null) { // Purpur // Hotpur
                      Calendar deadline = Calendar.getInstance();
-                     deadline.add(Calendar.DAY_OF_YEAR, -28);
+-                    deadline.add(Calendar.DAY_OF_YEAR, -28);
 -                    if (buildDate.before(deadline.getTime())) {
++                    deadline.add(Calendar.DAY_OF_YEAR, -1);
 +                    if (HotpurVersioning.buildTime.before(deadline.getTime())) {
                          // Paper start - This is some stupid bullshit
                          System.err.println("*** Warning, you've not updated in a while! ***");
