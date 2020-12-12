@@ -25,7 +25,7 @@ done
 . "$(dirname "$SOURCE")/init.sh"
 PS1="$"
 
-purpurVer=$(cat current-purpur)
+tuinityVer=$(cat current-tuinity)
 gpgsign="$(git config commit.gpgsign || echo "false")"
 echo "Rebuilding Forked projects.... "
 function applyPatch {
@@ -82,8 +82,8 @@ function enableCommitSigningIfNeeded {
     echo "Importing MC-DEV"
     ./scripts/importmcdev.sh "$basedir" || exit 1
 (
-    (applyPatch Purpur/Purpur-API Hotpur-API HEAD api "$API_REPO" &&
-    applyPatch Purpur/Purpur-Server Hotpur-Server HEAD server "$SERVER_REPO" &&
+    (applyPatch Tuinity/Tuinity-API Hotpur-API HEAD api "$API_REPO" &&
+    applyPatch Tuinity/Tuinity-Server Hotpur-Server HEAD server "$SERVER_REPO" &&
     applyPatch fabric-loader Hotpur-fabric-loader HEAD fabric-loader "") || exit 1
     enableCommitSigningIfNeeded
 ) || (

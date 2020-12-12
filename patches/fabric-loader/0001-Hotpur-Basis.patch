@@ -27,14 +27,15 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b279fad0158 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..fc429b9eafd931ba69f059b9e97b308b5958add0 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -1,15 +1,20 @@
+@@ -1,15 +1,21 @@
 +import com.github.jengelman.gradle.plugins.shadow.relocation.RelocateClassContext
 +import com.github.jengelman.gradle.plugins.shadow.relocation.RelocatePathContext
 +import com.github.jengelman.gradle.plugins.shadow.relocation.Relocator
 +import com.ishland.hotpur.gradle.hotpurclip.MakePatchesTask
++import com.ishland.hotpur.gradle.utils.PropertiesUtils
 +
 +import java.nio.file.Files
 +import java.security.MessageDigest
@@ -57,7 +58,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  archivesBaseName = "fabric-loader"
  
  // Fetch build number from Jenkins
-@@ -27,11 +32,16 @@ repositories {
+@@ -27,11 +33,16 @@ repositories {
  		name = 'mojang'
  		url = 'https://libraries.minecraft.net/'
  	}
@@ -76,7 +77,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  
  	// fabric-loader dependencies
  	implementation "org.ow2.asm:asm:${project.asm_version}"
-@@ -49,7 +59,6 @@ dependencies {
+@@ -49,7 +60,6 @@ dependencies {
  
  	implementation('net.fabricmc:sponge-mixin:0.8.2+build.24') {
  		exclude module: 'launchwrapper'
@@ -84,7 +85,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  	}
  	implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
  	implementation 'net.fabricmc:tiny-remapper:0.3.0.70'
-@@ -68,6 +77,14 @@ dependencies {
+@@ -68,6 +78,14 @@ dependencies {
  
  	// Unit testing for mod metadata
  	testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
@@ -99,7 +100,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  }
  
  processResources {
-@@ -83,6 +100,9 @@ java {
+@@ -83,6 +101,9 @@ java {
  	// if it is present.
  	// If you remove this task, sources will not be generated.
  	withSourcesJar()
@@ -109,7 +110,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  }
  
  jar {
-@@ -97,14 +117,14 @@ jar {
+@@ -97,14 +118,14 @@ jar {
  	}
  }
  
@@ -126,7 +127,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  	from('src/main/resources/fabric-installer.launchwrapper.json') {
  		rename { "${archivesBaseName}-${version}.launchwrapper.json" }
  	}
-@@ -116,13 +136,6 @@ tasks.build.dependsOn "copyJsonLw"
+@@ -116,13 +137,6 @@ tasks.build.dependsOn "copyJsonLw"
  
  tasks.withType(JavaCompile).configureEach {
  	it.options.encoding = "UTF-8"
@@ -140,7 +141,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
  }
  
  javadoc {
-@@ -157,59 +170,38 @@ task javadocJar(type: Jar) {
+@@ -157,59 +171,36 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  
@@ -200,7 +201,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
 -	}
 -}
 +task genPatches(type: MakePatchesTask) {
-+	originalJar rootProject.file("./Purpur/Paper/work/Minecraft/${project.minecraft_version}/${project.minecraft_version}-m.jar")
++	originalJar rootProject.file("./Tuinity/Paper/work/Minecraft/${project.minecraft_version}/${project.minecraft_version}-m.jar")
 +	targetJar project(":hotpur").buildDir.toPath().resolve("libs").resolve("hotpur-${project.minecraft_version}.jar").toFile()
  
 -// A task to ensure that the version being released has not already been released.
@@ -220,9 +221,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ee57685b69102a3175549f803bbc6b27
 +		prop.setProperty("minecraftVersion", project.minecraft_version)
 +		prop.setProperty("nmsRevision", project.nms_revision)
 +		prop.setProperty("patchedHash", toHex(digest.digest(Files.readAllBytes(targetJar.toPath()))))
-+		OutputStream out = Files.newOutputStream(getOutput().toPath().getParent().resolve("hotpur-launch.properties"))
-+		prop.store(out, new Date().toString())
-+		out.close()
++		PropertiesUtils.saveProperties(prop, getOutput().toPath().getParent().resolve("hotpur-launch.properties"), "Hotpur launch values")
  	}
  }
  
@@ -1724,10 +1723,10 @@ index 0000000000000000000000000000000000000000..cd4e55f4b71f8b710d0553a4f2f22692
 +}
 diff --git a/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d806142e47984e17f59aed2f56e6089c7e4f3838
+index 0000000000000000000000000000000000000000..d82b225ed2f305d3da3c4139cf65f5163c3ea301
 --- /dev/null
 +++ b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
-@@ -0,0 +1,406 @@
+@@ -0,0 +1,407 @@
 +package com.ishland.hotpur.fabricloader;
 +
 +import com.google.common.base.Throwables;
@@ -1854,6 +1853,7 @@ index 0000000000000000000000000000000000000000..d806142e47984e17f59aed2f56e6089c
 +		}
 +	}
 +
++	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 +	private static boolean isValidPatchedJar(Path patchedJar) throws IOException {
 +		try {
 +			return patchedHash.equals(toHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(patchedJar))));

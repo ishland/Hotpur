@@ -89,7 +89,7 @@ case "$1" in
   echo "  * b, build        | Build Hotpur API and Server"
   echo "  * rb, rebuild     | Rebuild patches"
   echo "  * am, amend       | Amend current edits to last patches"
-  echo "  * up, upstream    | Build Purpur upstream, pass arg up to update Purpur"
+  echo "  * up, upstream    | Build Tuinity upstream, pass arg up to update Tuinity"
   echo "  * jar, hotperclip | Apply all patches and build the project, hotpur-paperclip.jar will be output"
   ;;
 esac

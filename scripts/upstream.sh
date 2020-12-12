@@ -13,10 +13,10 @@ if [[ "$1" == up* ]]; then
   (
     echo "Updating submodules"
     (
-    cd "$basedir/Purpur/" || exit
+    cd "$basedir/Tuinity/" || exit
     git checkout ver/1.16.4 && git pull && git reset --hard && git submodule update --init --recursive -f
     cd ../
-    git add Purpur
+    git add Tuinity
     )
 
     (
@@ -28,28 +28,28 @@ if [[ "$1" == up* ]]; then
   )
 fi
 
-purpurVer=$(gethead Purpur)
-cd "$basedir/Purpur/" || exit
+tuinityVer=$(gethead Tuinity)
+cd "$basedir/Tuinity/" || exit
 
-./purpur up
-./purpur patch
+./tuinity up
+./tuinity patch
 git reset HEAD current-paper
 git checkout -- current-paper
 
-cd "Purpur-Server" || exit
+cd "Tuinity-Server" || exit
 mcVer=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=minecraft_version | sed -n -e '/^\[.*\]/ !{ /^[0-9]/ { p; q } }')
 
 basedir
 . "$basedir"/scripts/importmcdev.sh
 
-minecraftversion=$(grep <"$basedir"/Purpur/Paper/work/BuildData/info.json minecraftVersion | cut -d '"' -f 4)
-version=$(echo -e "Purpur: $purpurVer\nmc-dev:$importedmcdev")
+minecraftversion=$(grep <"$basedir"/Tuinity/Paper/work/BuildData/info.json minecraftVersion | cut -d '"' -f 4)
+version=$(echo -e "Tuinity: $tuinityVer\nmc-dev:$importedmcdev")
 tag="${minecraftversion}-${mcVer}-$(echo -e "$version" | shasum | awk '{print $1}')"
-echo "$tag" >"$basedir"/current-purpur
+echo "$tag" >"$basedir"/current-tuinity
 
 "$basedir"/scripts/generatesources.sh
 
-cd Purpur/ || exit
+cd Tuinity/ || exit
 
 function tag() {
   (
@@ -64,9 +64,9 @@ echo "Tagging as $tag"
 echo -e "$version"
 
 forcetag=0
-if [ "$(cat "$basedir"/current-purpur)" != "$tag" ]; then
+if [ "$(cat "$basedir"/current-tuinity)" != "$tag" ]; then
   forcetag=1
 fi
 
-tag Purpur-API $forcetag
-tag Purpur-Server $forcetag
+tag Tuinity-API $forcetag
+tag Tuinity-Server $forcetag
