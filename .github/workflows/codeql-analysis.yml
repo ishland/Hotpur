@@ -46,6 +46,7 @@ jobs:
     
     - name: Setup Git for Patching
       run: |
+         git submodule update --init --progress --recursive
          git config --global user.email "ci@github.com"
          git config --global user.name "Github CI"
     
