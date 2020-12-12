@@ -13,12 +13,12 @@ if [[ "$1" == up* ]]; then
   (
     echo "Updating submodules"
     cd "$basedir/Purpur/" || exit
-    git fetch && git reset --hard origin/ver/1.16.4
+    git fetch && git reset --hard origin/ver/1.16.4 && git submodule update --init --recursive -f
     cd ../
     git add Purpur
 
     cd "$basedir/fabric-loader/" || exit
-    git fetch && git reset --hard origin/master
+    git fetch && git reset --hard origin/master && git submodule update --init --recursive -f
     cd ../
     git add fabric-loader
   )
