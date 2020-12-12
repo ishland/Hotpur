@@ -50,6 +50,7 @@ jobs:
          git config --global user.email "ci@github.com"
          git config --global user.name "Github CI"
          ./hotpur up
+         ./hotpur patch
     
     - name: Get MC Version
       run: echo "::set-output name=mcver::$(cat "Purpur/Paper/work/BuildData/info.json"  | grep minecraftVersion | cut -d '"' -f 4)"
