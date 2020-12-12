@@ -44,9 +44,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
     
-    - name: Setup Git for Patching
+    - name: Setup Project for Patching
       run: |
          git submodule update --init --progress --recursive
+         ./hotpur up
          git config --global user.email "ci@github.com"
          git config --global user.name "Github CI"
     
