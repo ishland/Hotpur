@@ -27,7 +27,7 @@ index 621470e..46bbc9e 100644
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d37..09afd18 100644
+index e075d37..ee57685 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,15 +1,20 @@
@@ -84,21 +84,22 @@ index e075d37..09afd18 100644
  	}
  	implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
  	implementation 'net.fabricmc:tiny-remapper:0.3.0.70'
-@@ -68,6 +77,13 @@ dependencies {
+@@ -68,6 +77,14 @@ dependencies {
  
  	// Unit testing for mod metadata
  	testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
 +
 +	// Extra dependencies
 +	implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'
-+	implementation 'me.lucko:jar-relocator:1.4'
-+	implementation 'io.sigpipe:jbsdiff:1.0'
++	implementation 'com.github.ishlandbukkit:jbsdiff:deff66b794'
++	// https://mvnrepository.com/artifact/org.tukaani/xz
++	implementation group: 'org.tukaani', name: 'xz', version: '1.8'
 +	implementation 'org.apache.logging.log4j:log4j-core:2.8.1'
 +	implementation 'org.apache.logging.log4j:log4j-iostreams:2.8.1'
  }
  
  processResources {
-@@ -83,6 +99,9 @@ java {
+@@ -83,6 +100,9 @@ java {
  	// if it is present.
  	// If you remove this task, sources will not be generated.
  	withSourcesJar()
@@ -108,7 +109,7 @@ index e075d37..09afd18 100644
  }
  
  jar {
-@@ -97,14 +116,14 @@ jar {
+@@ -97,14 +117,14 @@ jar {
  	}
  }
  
@@ -125,7 +126,7 @@ index e075d37..09afd18 100644
  	from('src/main/resources/fabric-installer.launchwrapper.json') {
  		rename { "${archivesBaseName}-${version}.launchwrapper.json" }
  	}
-@@ -116,13 +135,6 @@ tasks.build.dependsOn "copyJsonLw"
+@@ -116,13 +136,6 @@ tasks.build.dependsOn "copyJsonLw"
  
  tasks.withType(JavaCompile).configureEach {
  	it.options.encoding = "UTF-8"
@@ -139,7 +140,7 @@ index e075d37..09afd18 100644
  }
  
  javadoc {
-@@ -157,59 +169,38 @@ task javadocJar(type: Jar) {
+@@ -157,59 +170,38 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  
@@ -1723,10 +1724,10 @@ index 0000000..cd4e55f
 +}
 diff --git a/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 new file mode 100644
-index 0000000..3881a31
+index 0000000..d806142
 --- /dev/null
 +++ b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,406 @@
 +package com.ishland.hotpur.fabricloader;
 +
 +import com.google.common.base.Throwables;
@@ -1734,8 +1735,6 @@ index 0000000..3881a31
 +import com.google.gson.annotations.SerializedName;
 +import io.sigpipe.jbsdiff.InvalidHeaderException;
 +import io.sigpipe.jbsdiff.Patch;
-+import me.lucko.jarrelocator.JarRelocator;
-+import me.lucko.jarrelocator.Relocation;
 +import org.apache.commons.compress.compressors.CompressorException;
 +
 +import java.io.BufferedOutputStream;
@@ -1754,7 +1753,6 @@ index 0000000..3881a31
 +import java.security.MessageDigest;
 +import java.security.NoSuchAlgorithmException;
 +import java.text.MessageFormat;
-+import java.util.Collections;
 +import java.util.List;
 +import java.util.Properties;
 +import java.util.zip.ZipFile;
@@ -2137,10 +2135,27 @@ index 0000000..3881a31
 +	}
 +}
 diff --git a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java b/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
-index 9959502..ed01879 100644
+index 9959502..6a72e16 100644
 --- a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
 +++ b/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
-@@ -135,7 +135,7 @@ public class MinecraftGameProvider implements GameProvider {
+@@ -16,6 +16,7 @@
+ 
+ package net.fabricmc.loader.game;
+ 
++import com.ishland.hotpur.server.HotpurVersioning;
+ import net.fabricmc.api.EnvType;
+ import net.fabricmc.loader.entrypoint.EntrypointTransformer;
+ import net.fabricmc.loader.entrypoint.minecraft.EntrypointPatchBranding;
+@@ -83,7 +84,7 @@ public class MinecraftGameProvider implements GameProvider {
+ 		}
+ 
+ 		return Arrays.asList(
+-			new BuiltinMod(url, new BuiltinModMetadata.Builder(getGameId(), getNormalizedGameVersion())
++			new BuiltinMod(url, new BuiltinModMetadata.Builder(getGameId(), getNormalizedGameVersion() + "+" + HotpurVersioning.implementationVersion.replaceAll("/", "-").replaceAll("_", "-"))
+ 				.setName(getGameName())
+ 				.build())
+ 		);
+@@ -135,7 +136,7 @@ public class MinecraftGameProvider implements GameProvider {
  		if (envType == EnvType.CLIENT) {
  			entrypointClasses = Arrays.asList("net.minecraft.client.main.Main", "net.minecraft.client.MinecraftApplet", "com.mojang.minecraft.MinecraftApplet");
  		} else {
