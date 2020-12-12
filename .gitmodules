@@ -1,7 +1,6 @@
-[submodule "Purpur"]
-	path = Purpur
-	url = https://github.com/pl3xgaming/Purpur.git
-	branch = ver/1.16.4
 [submodule "fabric-loader"]
 	path = fabric-loader
 	url = https://github.com/FabricMC/fabric-loader.git
+[submodule "Tuinity"]
+	path = Tuinity
+	url = https://github.com/Spottedleaf/Tuinity.git

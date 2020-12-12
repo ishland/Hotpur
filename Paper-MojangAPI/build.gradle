@@ -22,10 +22,10 @@ description = 'Paper-MojangAPI'
 sourceSets {
     main {
         java {
-            srcDirs = ['../Purpur/Paper/Paper-MojangAPI/src/main/java']
+            srcDirs = ['../Tuinity/Paper/Paper-MojangAPI/src/main/java']
         }
         resources {
-            srcDirs = ['../Purpur/Paper/Paper-MojangAPI/src/main/resources']
+            srcDirs = ['../Tuinity/Paper/Paper-MojangAPI/src/main/resources']
         }
     }
 }
