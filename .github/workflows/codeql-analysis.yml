@@ -47,9 +47,9 @@ jobs:
     - name: Setup Project for Patching
       run: |
          git submodule update --init --progress --recursive
-         ./hotpur up
          git config --global user.email "ci@github.com"
          git config --global user.name "Github CI"
+         ./hotpur up
     
     - name: Get MC Version
       run: echo "::set-output name=mcver::$(cat "Purpur/Paper/work/BuildData/info.json"  | grep minecraftVersion | cut -d '"' -f 4)"
