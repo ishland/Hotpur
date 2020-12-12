@@ -12,15 +12,19 @@ git submodule update --init --progress
 if [[ "$1" == up* ]]; then
   (
     echo "Updating submodules"
+    (
     cd "$basedir/Purpur/" || exit
-    git fetch && git reset --hard origin/ver/1.16.4 && git submodule update --init --recursive -f
+    git checkout ver/1.16.4 && git pull && git reset --hard && git submodule update --init --recursive -f
     cd ../
     git add Purpur
+    )
 
+    (
     cd "$basedir/fabric-loader/" || exit
-    git fetch && git reset --hard origin/master && git submodule update --init --recursive -f
+    git checkout master && git pull && git reset --hard && git submodule update --init --recursive -f
     cd ../
     git add fabric-loader
+    )
   )
 fi
 
@@ -29,7 +33,8 @@ cd "$basedir/Purpur/" || exit
 
 ./purpur up
 ./purpur patch
-git reset --hard
+git reset HEAD current-paper
+git checkout -- current-paper
 
 cd "Purpur-Server" || exit
 mcVer=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=minecraft_version | sed -n -e '/^\[.*\]/ !{ /^[0-9]/ { p; q } }')
