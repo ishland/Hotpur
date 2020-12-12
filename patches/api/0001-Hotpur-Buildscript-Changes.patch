@@ -6,7 +6,7 @@ Subject: [PATCH] Hotpur Buildscript Changes
 
 diff --git a/build.gradle b/build.gradle
 new file mode 100644
-index 00000000..b80dec0d
+index 0000000000000000000000000000000000000000..b80dec0d16227d8e89fbb6ce3ad2ef951cafcb53
 --- /dev/null
 +++ b/build.gradle
 @@ -0,0 +1,39 @@
@@ -51,7 +51,7 @@ index 00000000..b80dec0d
 +assemble.dependsOn(shadowJar)
 diff --git a/pom.xml b/pom.xml
 deleted file mode 100644
-index f0696d8c..00000000
+index f0696d8c1dede705f6dd3fd0162864dfd42d2fdf..0000000000000000000000000000000000000000
 --- a/pom.xml
 +++ /dev/null
 @@ -1,306 +0,0 @@
