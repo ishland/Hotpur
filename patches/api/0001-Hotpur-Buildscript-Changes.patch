@@ -51,27 +51,26 @@ index 0000000000000000000000000000000000000000..b80dec0d16227d8e89fbb6ce3ad2ef95
 +assemble.dependsOn(shadowJar)
 diff --git a/pom.xml b/pom.xml
 deleted file mode 100644
-index 4516ba097e8afc3e422efc368311fa66e967c05a..0000000000000000000000000000000000000000
+index f0696d8c1dede705f6dd3fd0162864dfd42d2fdf..0000000000000000000000000000000000000000
 --- a/pom.xml
 +++ /dev/null
-@@ -1,298 +0,0 @@
--
+@@ -1,306 +0,0 @@
 -<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 -         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 -    <modelVersion>4.0.0</modelVersion>
 -    <parent>
--        <groupId>com.tuinity</groupId>
--        <artifactId>tuinity-parent</artifactId>
+-        <groupId>net.pl3x.purpur</groupId>
+-        <artifactId>purpur-parent</artifactId>
 -        <version>dev-SNAPSHOT</version>
 -        <relativePath>../pom.xml</relativePath>
 -    </parent>
 -
--    <artifactId>tuinity-api</artifactId>
+-    <artifactId>purpur-api</artifactId>
 -    <version>1.16.4-R0.1-SNAPSHOT</version>
 -    <packaging>jar</packaging>
 -
--    <name>Tuinity-API</name>
--    <url>https://github.com/Spottedleaf/Tuinity</url>
+-    <name>Purpur-API</name>
+-    <url>https://github.com/pl3xgaming/Purpur</url>
 -    <description>An enhanced plugin API for Minecraft servers.</description>
 -
 -    <properties>
@@ -206,7 +205,7 @@ index 4516ba097e8afc3e422efc368311fa66e967c05a..00000000000000000000000000000000
 -    </dependencies>
 -
 -    <build>
--        <defaultGoal>clean install</defaultGoal>
+-        <defaultGoal>clean install javadoc:javadoc</defaultGoal>
 -        <plugins>
 -            <plugin>
 -                <groupId>net.md-5</groupId>
@@ -284,6 +283,14 @@ index 4516ba097e8afc3e422efc368311fa66e967c05a..00000000000000000000000000000000
 -                <groupId>org.apache.maven.plugins</groupId>
 -                <artifactId>maven-javadoc-plugin</artifactId>
 -                <version>3.2.0</version>
+-                <executions>
+-                    <execution>
+-                        <id>attach-javadocs</id>
+-                        <goals>
+-                            <goal>jar</goal>
+-                        </goals>
+-                    </execution>
+-                </executions>
 -                <configuration>
 -                    <links>
 -                        <link>https://guava.dev/releases/21.0/api/docs/</link>
@@ -291,6 +298,7 @@ index 4516ba097e8afc3e422efc368311fa66e967c05a..00000000000000000000000000000000
 -                        <link>https://javadoc.io/doc/org.jetbrains/annotations-java5/19.0.0/</link>
 -                        <link>https://javadoc.io/doc/net.md-5/bungeecord-chat/1.16-R0.3/</link>
 -                    </links>
+-                    <additionalOptions>-Xdoclint:none</additionalOptions>
 -                </configuration>
 -            </plugin>
 -        </plugins>

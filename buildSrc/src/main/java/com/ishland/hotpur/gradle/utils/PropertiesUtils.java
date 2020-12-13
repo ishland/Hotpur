@@ -15,6 +15,9 @@ import static java.nio.file.StandardOpenOption.WRITE;
 public class PropertiesUtils {
 
     public static void saveProperties(Properties prop, Path file, String comments){
+        System.out.println("Saving properties file to " + file);
+        file.toFile().getParentFile().mkdirs();
+        file.toFile().delete();
         try(final OutputStream out = Files.newOutputStream(file, CREATE, WRITE, TRUNCATE_EXISTING)) {
             prop.store(out, comments);
         } catch (IOException e) {

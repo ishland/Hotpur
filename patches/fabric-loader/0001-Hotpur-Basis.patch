@@ -27,7 +27,7 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..fc429b9eafd931ba69f059b9e97b308b5958add0 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a43156f867 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,15 +1,21 @@
@@ -201,7 +201,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fc429b9eafd931ba69f059b9e97b308b
 -	}
 -}
 +task genPatches(type: MakePatchesTask) {
-+	originalJar rootProject.file("./Tuinity/Paper/work/Minecraft/${project.minecraft_version}/${project.minecraft_version}-m.jar")
++	originalJar rootProject.file("./Purpur/Paper/work/Minecraft/${project.minecraft_version}/${project.minecraft_version}-m.jar")
 +	targetJar project(":hotpur").buildDir.toPath().resolve("libs").resolve("hotpur-${project.minecraft_version}.jar").toFile()
  
 -// A task to ensure that the version being released has not already been released.
@@ -1723,7 +1723,7 @@ index 0000000000000000000000000000000000000000..cd4e55f4b71f8b710d0553a4f2f22692
 +}
 diff --git a/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d82b225ed2f305d3da3c4139cf65f5163c3ea301
+index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db526fdf9bd2
 --- /dev/null
 +++ b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 @@ -0,0 +1,407 @@
@@ -1837,18 +1837,18 @@ index 0000000000000000000000000000000000000000..d82b225ed2f305d3da3c4139cf65f516
 +				throw new RuntimeException("Unable to apply mappings");
 +		}
 +
-+		if(!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar)) {
++		if (!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar)) {
 +			System.err.println("Applying patches...");
 +			byte[] origin = Files.readAllBytes(memberMappedJar);
 +			byte[] patch;
 +			try (final InputStream in = ServerSetup.class.getClassLoader().getResourceAsStream("hotpur.patch")) {
-+				if(in == null) throw new FileNotFoundException("hotpur.patch");
++				if (in == null) throw new FileNotFoundException("hotpur.patch");
 +				patch = in.readAllBytes();
 +			}
 +			try (final OutputStream out = new BufferedOutputStream(new FileOutputStream(patchedJar.toFile()))) {
 +				Patch.patch(origin, patch, out);
 +			}
-+			if(!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar))
++			if (!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar))
 +				throw new RuntimeException("Unable to apply patch");
 +		}
 +	}
@@ -1907,7 +1907,7 @@ index 0000000000000000000000000000000000000000..d82b225ed2f305d3da3c4139cf65f516
 +		try {
 +			ZipFile zipFile = new ZipFile(buildData.toFile());
 +			zipFile.entries().asIterator().forEachRemaining(zipEntry -> {
-+				if(zipEntry.isDirectory()) return;
++				if (zipEntry.isDirectory()) return;
 +				buildData.getParent().resolve(zipEntry.getName()).getParent().toFile().mkdirs();
 +				try (
 +						final ReadableByteChannel source = Channels.newChannel(zipFile.getInputStream(zipEntry));
