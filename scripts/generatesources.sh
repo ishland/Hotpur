@@ -9,10 +9,10 @@ done
 . "$(dirname "$SOURCE")/init.sh"
 
 cd "$basedir" || exit
-tuinityVer=$(cat current-tuinity)
+purpurVer=$(cat current-purpur)
 
-minecraftversion=$(grep <"$basedir"/Tuinity/Paper/work/BuildData/info.json minecraftVersion | cut -d '"' -f 4)
-decompile="Tuinity/Paper/work/Minecraft/$minecraftversion/spigot"
+minecraftversion=$(grep <"$basedir"/Purpur/Paper/work/BuildData/info.json minecraftVersion | cut -d '"' -f 4)
+decompile="Purpur/Paper/work/Minecraft/$minecraftversion/spigot"
 
 mkdir -p mc-dev/src/net/minecraft/server
 
@@ -24,7 +24,7 @@ fi
 rm src/net/minecraft/server/*.java
 cp "$basedir"/"$decompile"/net/minecraft/server/*.java src/net/minecraft/server
 
-base="$basedir/Tuinity/Tuinity-Server/src/main/java/net/minecraft/server"
+base="$basedir/Purpur/Purpur-Server/src/main/java/net/minecraft/server"
 cd "$basedir"/mc-dev/src/net/minecraft/server/ || exit
 for file in $(/bin/ls "$base"); do
   if [ -f "$file" ]; then
@@ -34,4 +34,4 @@ done
 cd "$basedir"/mc-dev || exit
 git add . -A
 git commit . -m "mc-dev"
-git tag -a "$tuinityVer" -m "$tuinityVer" 2>/dev/null
+git tag -a "$purpurVer" -m "$purpurVer" 2>/dev/null
