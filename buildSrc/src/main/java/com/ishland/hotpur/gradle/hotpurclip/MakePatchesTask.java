@@ -1,35 +1,49 @@
 package com.ishland.hotpur.gradle.hotpurclip;
 
 import com.google.common.base.Preconditions;
-import io.sigpipe.jbsdiff.DefaultDiffSettings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.gson.Gson;
 import io.sigpipe.jbsdiff.Diff;
-import io.sigpipe.jbsdiff.InvalidHeaderException;
-import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.tasks.Copy;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.internal.logging.progress.ProgressLogger;
 import org.gradle.internal.logging.progress.ProgressLoggerFactory;
 import org.gradle.work.Incremental;
+import org.gradle.workers.WorkerExecutor;
 
-import java.io.BufferedOutputStream;
+import javax.inject.Inject;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class MakePatchesTask extends DefaultTask {
 
-    @OutputFile
-    private File output = ((Copy) getProject().getTasks().getByPath("processResources")).getDestinationDir().toPath().resolve("hotpur.patch").toFile();
+    @OutputDirectory
+    private final File outputDir = ((Copy) getProject().getTasks().getByPath("processResources")).getDestinationDir().toPath().resolve("patches").toFile();
 
     @InputFile
     @Incremental
@@ -37,6 +51,17 @@ public class MakePatchesTask extends DefaultTask {
     @InputFile
     @Incremental
     public File targetJar = null;
+
+    public Set<PatchesMetadata.Relocation> getRelocations() {
+        return relocations;
+    }
+
+    public void setRelocations(Set<PatchesMetadata.Relocation> relocations) {
+        this.relocations = relocations;
+    }
+
+    @Input
+    public Set<PatchesMetadata.Relocation> relocations;
 
     public File getOriginalJar() {
         return originalJar;
@@ -54,16 +79,21 @@ public class MakePatchesTask extends DefaultTask {
         this.targetJar = targetJar;
     }
 
-    public File getOutput() {
-        return output;
+    public File getOutputDir() {
+        return outputDir;
     }
 
     private ProgressLoggerFactory getProgressLoggerFactory() {
         return ((ProjectInternal) getProject()).getServices().get(ProgressLoggerFactory.class);
     }
 
+    @Inject
+    public WorkerExecutor getWorkerExecutor() {
+        throw new UnsupportedOperationException();
+    }
+
     @TaskAction
-    public void genPatches() throws IOException, CompressorException, InvalidHeaderException {
+    public void genPatches() throws IOException, NoSuchAlgorithmException, InterruptedException {
         Preconditions.checkNotNull(originalJar);
         Preconditions.checkNotNull(targetJar);
 
@@ -71,19 +101,158 @@ public class MakePatchesTask extends DefaultTask {
         genPatches.started();
 
         genPatches.progress("Cleanup");
-        output.delete();
+        outputDir.mkdirs();
+        FileUtils.cleanDirectory(outputDir);
 
+        genPatches.progress("Reading files");
+        ThreadLocal<ZipFile> originalZip = ThreadLocal.withInitial(() -> {
+            try {
+                return new ZipFile(originalJar);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        ThreadLocal<ZipFile> targetZip = ThreadLocal.withInitial(() -> {
+            try {
+                return new ZipFile(targetJar);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        Set<PatchesMetadata.PatchMetadata> patchMetadata = Sets.newConcurrentHashSet();
+        ThreadLocal<MessageDigest> digestThreadLocal = ThreadLocal.withInitial(() -> {
+            try {
+                return MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        ThreadLocal<ProgressLogger> progressLoggerThreadLocal = ThreadLocal.withInitial(() -> {
+            final ProgressLogger progressLogger = getProgressLoggerFactory().newOperation(getClass());
+            progressLogger.setDescription("Patch worker");
+            progressLogger.started("Idle");
+            return progressLogger;
+        });
+        final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
+                new ThreadFactoryBuilder().setNameFormat("MakePatches-%d").setThreadFactory(r -> new Thread(() -> {
+                    boolean isExceptionOccurred = false;
+                    try {
+                        r.run();
+                    } catch (Throwable t) {
+                        isExceptionOccurred = true;
+                        progressLoggerThreadLocal.get().completed(t.toString(), true);
+                        throw t;
+                    } finally {
+                        digestThreadLocal.remove();
+                        if (!isExceptionOccurred)
+                            progressLoggerThreadLocal.get().completed();
+                        progressLoggerThreadLocal.remove();
+                        try {
+                            originalZip.get().close();
+                            targetZip.get().close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                })).build());
+        AtomicInteger current = new AtomicInteger(0);
+        final int size = targetZip.get().size();
+        targetZip.get().entries().asIterator().forEachRemaining(zipEntryT -> {
+            genPatches.progress("Submitting tasks (" + current.incrementAndGet() + "/" + size + ")");
+            if (zipEntryT.isDirectory()) return;
+            executorService.execute(() -> {
+                ZipEntry zipEntry = targetZip.get().getEntry(zipEntryT.getName());
+                final String child = zipEntry.getName();
+                progressLoggerThreadLocal.get().progress("Reading " + zipEntry.getName());
+                File outputFile = new File(outputDir, child + ".patch");
+                outputFile.getParentFile().mkdirs();
+                final byte[] originalBytes;
+                final byte[] targetBytes;
+                final ZipEntry oEntry = originalZip.get().getEntry(applyRelocationsReverse(child));
+                try (
+                        final InputStream oin = oEntry != null ? originalZip.get().getInputStream(oEntry) : null;
+                        final InputStream tin = targetZip.get().getInputStream(zipEntry);
+                ) {
+                    originalBytes = oin != null ? oin.readAllBytes() : new byte[0];
+                    targetBytes = tin.readAllBytes();
+                } catch (Throwable e) {
+                    Throwables.throwIfUnchecked(e);
+                    throw new RuntimeException(e);
+                }
+                if (Arrays.equals(originalBytes, targetBytes)) return;
+
+                progressLoggerThreadLocal.get().progress("GenPatch " + zipEntry.getName());
+                try (final OutputStream out = new FileOutputStream(outputFile)) {
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    Diff.diff(originalBytes, targetBytes, byteArrayOutputStream);
+                    patchMetadata.add(new PatchesMetadata.PatchMetadata(child, toHex(digestThreadLocal.get().digest(originalBytes)), toHex(digestThreadLocal.get().digest(targetBytes)), toHex(digestThreadLocal.get().digest(byteArrayOutputStream.toByteArray()))));
+                    out.write(byteArrayOutputStream.toByteArray());
+                } catch (Throwable t) {
+                    Throwables.throwIfUnchecked(t);
+                    throw new RuntimeException(t);
+                }
+
+                progressLoggerThreadLocal.get().progress("Idle");
+            });
+        });
+        genPatches.progress("Calculating exclusions");
+        Set<String> copyExcludes = new HashSet<>();
+        originalZip.get().entries().asIterator().forEachRemaining(zipEntry -> {
+            if(targetZip.get().getEntry(applyRelocations(zipEntry.getName())) == null)
+                copyExcludes.add(zipEntry.getName());
+        });
+        originalZip.get().close();
+        targetZip.get().close();
+
+        genPatches.progress("Waiting for patching to finish");
+        executorService.shutdown();
+        while (!executorService.awaitTermination(1, TimeUnit.SECONDS)) ;
+        digestThreadLocal.remove();
+
+        genPatches.progress("Writing patches metadata");
+        try (final OutputStream out = new FileOutputStream(new File(outputDir, "metadata.json"));
+             final Writer writer = new OutputStreamWriter(out)) {
+            new Gson().toJson(new PatchesMetadata(patchMetadata, relocations, copyExcludes), writer);
+        }
+
+        /*
         genPatches.progress("Reading jar files into memory");
         byte[] origin = Files.readAllBytes(originalJar.toPath());
         byte[] target = Files.readAllBytes(targetJar.toPath());
 
         genPatches.progress("Generating patch");
         try(final OutputStream out = new BufferedOutputStream(new FileOutputStream(output))){
-            Diff.diff(origin, target, out, new DefaultDiffSettings(CompressorStreamFactory.XZ));
+            Diff.diff(origin, target, out);
         }
+         */
 
         genPatches.completed();
 
+    }
+
+    private String applyRelocations(String name) {
+        if(!name.endsWith(".class")) return name;
+        if (name.indexOf('/') == -1)
+            name = "/" + name;
+        for (PatchesMetadata.Relocation relocation : relocations) {
+            if (name.startsWith(relocation.from) && (relocation.includeSubPackages || name.split("/").length == name.split("/").length - 1)) {
+                return relocation.to + name.substring(relocation.from.length());
+            }
+        }
+        return name;
+    }
+
+    private String applyRelocationsReverse(String name) {
+        if(!name.endsWith(".class")) return name;
+        if (name.indexOf('/') == -1)
+            name = "/" + name;
+        for (PatchesMetadata.Relocation relocation : relocations) {
+            if (name.startsWith(relocation.to) && (relocation.includeSubPackages || name.split("/").length == name.split("/").length - 1)) {
+                return relocation.from + name.substring(relocation.to.length());
+            }
+        }
+        return name;
     }
 
     public static String toHex(final byte[] hash) {

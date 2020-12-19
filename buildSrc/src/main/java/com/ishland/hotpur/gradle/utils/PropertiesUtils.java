@@ -1,5 +1,6 @@
 package com.ishland.hotpur.gradle.utils;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -18,7 +19,7 @@ public class PropertiesUtils {
         System.out.println("Saving properties file to " + file);
         file.toFile().getParentFile().mkdirs();
         file.toFile().delete();
-        try(final OutputStream out = Files.newOutputStream(file, CREATE, WRITE, TRUNCATE_EXISTING)) {
+        try(final OutputStream out = new FileOutputStream(file.toFile())) {
             prop.store(out, comments);
         } catch (IOException e) {
             throw new RuntimeException(e);
