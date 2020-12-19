@@ -6,11 +6,12 @@ Subject: [PATCH] Hotpur Basis
 
 diff --git a/build.gradle b/build.gradle
 new file mode 100644
-index 0000000000000000000000000000000000000000..8faac384a47b9ece960221d3f69104260c62db43
+index 0000000000000000000000000000000000000000..6fb295ad61ca05a54488da855f36b5dafa6bddb3
 --- /dev/null
 +++ b/build.gradle
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,85 @@
 +import com.ishland.hotpur.gradle.utils.PropertiesUtils
++import org.apache.commons.io.FileUtils
 +
 +import java.text.SimpleDateFormat
 +
@@ -61,7 +62,11 @@ index 0000000000000000000000000000000000000000..8faac384a47b9ece960221d3f6910426
 +}
 +
 +processResources {
++    outputs.upToDateWhen {false}
 +    doFirst {
++        FileUtils.cleanDirectory(getDestinationDir())
++    }
++    doLast {
 +        Properties properties = new Properties();
 +        properties.setProperty("ImplementationVersion", rootProject.ext.implementationVersion)
 +        properties.setProperty("SpecificationVersion", project.project_version)

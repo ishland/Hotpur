@@ -27,14 +27,15 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a43156f867 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb5628cd00 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -1,15 +1,21 @@
+@@ -1,15 +1,22 @@
 +import com.github.jengelman.gradle.plugins.shadow.relocation.RelocateClassContext
 +import com.github.jengelman.gradle.plugins.shadow.relocation.RelocatePathContext
 +import com.github.jengelman.gradle.plugins.shadow.relocation.Relocator
 +import com.ishland.hotpur.gradle.hotpurclip.MakePatchesTask
++import com.ishland.hotpur.gradle.hotpurclip.PatchesMetadata
 +import com.ishland.hotpur.gradle.utils.PropertiesUtils
 +
 +import java.nio.file.Files
@@ -58,7 +59,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  archivesBaseName = "fabric-loader"
  
  // Fetch build number from Jenkins
-@@ -27,11 +33,16 @@ repositories {
+@@ -27,11 +34,16 @@ repositories {
  		name = 'mojang'
  		url = 'https://libraries.minecraft.net/'
  	}
@@ -77,7 +78,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  
  	// fabric-loader dependencies
  	implementation "org.ow2.asm:asm:${project.asm_version}"
-@@ -49,7 +60,6 @@ dependencies {
+@@ -49,7 +61,6 @@ dependencies {
  
  	implementation('net.fabricmc:sponge-mixin:0.8.2+build.24') {
  		exclude module: 'launchwrapper'
@@ -85,7 +86,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  	}
  	implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
  	implementation 'net.fabricmc:tiny-remapper:0.3.0.70'
-@@ -68,6 +78,14 @@ dependencies {
+@@ -68,6 +79,14 @@ dependencies {
  
  	// Unit testing for mod metadata
  	testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
@@ -100,7 +101,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  }
  
  processResources {
-@@ -83,6 +101,9 @@ java {
+@@ -83,6 +102,9 @@ java {
  	// if it is present.
  	// If you remove this task, sources will not be generated.
  	withSourcesJar()
@@ -110,7 +111,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  }
  
  jar {
-@@ -97,14 +118,14 @@ jar {
+@@ -97,14 +119,14 @@ jar {
  	}
  }
  
@@ -127,7 +128,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  	from('src/main/resources/fabric-installer.launchwrapper.json') {
  		rename { "${archivesBaseName}-${version}.launchwrapper.json" }
  	}
-@@ -116,13 +137,6 @@ tasks.build.dependsOn "copyJsonLw"
+@@ -116,13 +138,6 @@ tasks.build.dependsOn "copyJsonLw"
  
  tasks.withType(JavaCompile).configureEach {
  	it.options.encoding = "UTF-8"
@@ -141,7 +142,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
  }
  
  javadoc {
-@@ -157,59 +171,36 @@ task javadocJar(type: Jar) {
+@@ -157,59 +172,47 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  
@@ -185,8 +186,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
 -			}
 -		}
 -	}
-+assemble.dependsOn(shadowJar)
- 
+-
 -	// select the repositories you want to publish to
 -	repositories {
 -		if (ENV.MAVEN_URL) {
@@ -198,11 +198,30 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
 -				}
 -			}
 -		}
--	}
--}
++assemble.dependsOn(shadowJar)
++
 +task genPatches(type: MakePatchesTask) {
 +	originalJar rootProject.file("./Purpur/Paper/work/Minecraft/${project.minecraft_version}/${project.minecraft_version}-m.jar")
 +	targetJar project(":hotpur").buildDir.toPath().resolve("libs").resolve("hotpur-${project.minecraft_version}.jar").toFile()
++	setRelocations(
++			Arrays.asList(
++					new PatchesMetadata.Relocation('jline', 'org.bukkit.craftbukkit.libs.jline', true),
++					new PatchesMetadata.Relocation('org.apache.commons.codec', 'org.bukkit.craftbukkit.libs.org.apache.commons.codec', true),
++					new PatchesMetadata.Relocation('org.apache.commons.io', 'org.bukkit.craftbukkit.libs.org.apache.commons.io', true),
++					new PatchesMetadata.Relocation('org.apache.commons.lang3', 'org.bukkit.craftbukkit.libs.org.apache.commons.lang3', true),
++					new PatchesMetadata.Relocation('org.objectweb.asm', 'org.bukkit.craftbukkit.libs.org.objectweb.asm', true),
++					new PatchesMetadata.Relocation('', "net.minecraft.server.v${project.nms_revision}", false)
++			) as Set<PatchesMetadata.Relocation>
++	)
++
++	dependsOn project(":hotpur").getTasks().getByPath("shadowJar")
++
++	doLast {
++		final Properties prop = new Properties()
++		prop.setProperty("minecraftVersion", project.minecraft_version)
++		PropertiesUtils.saveProperties(prop, getOutputDir().toPath().getParent().resolve("hotpur-launch.properties"), "Hotpur launch values")
+ 	}
+ }
  
 -// A task to ensure that the version being released has not already been released.
 -task checkVersion {
@@ -213,16 +232,9 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..fd35395a916e4f5136523bfe849a86a4
 -		if (versions.contains(version)) {
 -			throw new RuntimeException("${version} has already been released!")
 -		}
-+	dependsOn project(":hotpur").getTasks().getByPath("shadowJar")
-+
-+	doLast {
-+		final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-+		final Properties prop = new Properties()
-+		prop.setProperty("minecraftVersion", project.minecraft_version)
-+		prop.setProperty("nmsRevision", project.nms_revision)
-+		prop.setProperty("patchedHash", toHex(digest.digest(Files.readAllBytes(targetJar.toPath()))))
-+		PropertiesUtils.saveProperties(prop, getOutput().toPath().getParent().resolve("hotpur-launch.properties"), "Hotpur launch values")
- 	}
+-	}
++jar {
++	enabled false
  }
  
 -publish.mustRunAfter checkVersion
@@ -1721,12 +1733,308 @@ index 0000000000000000000000000000000000000000..cd4e55f4b71f8b710d0553a4f2f22692
 +	}
 +
 +}
+diff --git a/src/main/java/com/ishland/hotpur/fabricloader/HotpurPatcher.java b/src/main/java/com/ishland/hotpur/fabricloader/HotpurPatcher.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a9fbe394ad1bc510129b3ed3827f23e93446e08d
+--- /dev/null
++++ b/src/main/java/com/ishland/hotpur/fabricloader/HotpurPatcher.java
+@@ -0,0 +1,232 @@
++package com.ishland.hotpur.fabricloader;
++
++import com.google.common.base.Preconditions;
++import com.google.common.base.Throwables;
++import com.google.common.util.concurrent.ThreadFactoryBuilder;
++import com.google.gson.Gson;
++import io.sigpipe.jbsdiff.Patch;
++
++import java.io.ByteArrayOutputStream;
++import java.io.FileNotFoundException;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.nio.file.Path;
++import java.security.MessageDigest;
++import java.util.Arrays;
++import java.util.HashSet;
++import java.util.Set;
++import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.LinkedBlockingQueue;
++import java.util.concurrent.RejectedExecutionException;
++import java.util.concurrent.ThreadPoolExecutor;
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipException;
++import java.util.zip.ZipFile;
++import java.util.zip.ZipOutputStream;
++
++import static com.ishland.hotpur.fabricloader.ServerSetup.toHex;
++
++public class HotpurPatcher {
++
++	private static final PatchesMetadata patchesMetadata;
++	private static final ExecutorService consoleExecutor =
++			new ThreadPoolExecutor(1, 1,
++					1000L, TimeUnit.MILLISECONDS,
++					new LinkedBlockingQueue<>(4),
++					new ThreadFactoryBuilder()
++							.setNameFormat("HotpurPatcher ConsoleLogger-%d")
++							.setDaemon(true).setPriority(Thread.NORM_PRIORITY - 1)
++							.build()
++			);
++
++	static {
++		try (
++				final InputStream in = HotpurPatcher.class.getClassLoader().getResourceAsStream("patches/metadata.json");
++				final InputStreamReader reader = new InputStreamReader(in);
++		) {
++			patchesMetadata = new Gson().fromJson(reader, PatchesMetadata.class);
++		} catch (Throwable t) {
++			Throwables.throwIfUnchecked(t);
++			throw new RuntimeException(t);
++		}
++	}
++
++	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
++	static boolean isJarUpToDate(Path patchedJar) {
++		Preconditions.checkNotNull(patchedJar);
++		if(!patchedJar.toFile().isFile()) return false;
++		try {
++			MessageDigest digest = MessageDigest.getInstance("SHA-256");
++			try (ZipFile patchedZip = new ZipFile(patchedJar.toFile())) {
++				for (PatchesMetadata.PatchMetadata patchMetadata : patchesMetadata.patches) {
++					ZipEntry zipEntry = patchedZip.getEntry(patchMetadata.name);
++					if (zipEntry == null || !patchMetadata.targetHash.equals(toHex(digest.digest(patchedZip.getInputStream(zipEntry).readAllBytes()))))
++						return false;
++				}
++			}
++			return true;
++		} catch (Throwable t) {
++			System.out.println(t.toString());
++			return false;
++		}
++	}
++
++	static void patchJar(Path classMappedJar, Path patchedJar) {
++		Preconditions.checkNotNull(classMappedJar);
++		Preconditions.checkNotNull(patchedJar);
++		Preconditions.checkArgument(classMappedJar.toFile().isFile());
++		try {
++			patchedJar.toFile().getParentFile().mkdirs();
++
++			try (final ZipFile classMappedZip = new ZipFile(classMappedJar.toFile())) {
++				MessageDigest digest = MessageDigest.getInstance("SHA-256");
++				AtomicInteger current = new AtomicInteger(0);
++				final int patchesSize = patchesMetadata.patches.size();
++				final int classMappedSize = classMappedZip.size();
++				AtomicInteger lastOutputLength = new AtomicInteger(0);
++				try (ZipOutputStream patchedZip = new ZipOutputStream(new FileOutputStream(patchedJar.toFile()))) {
++					patchedZip.setMethod(ZipOutputStream.DEFLATED);
++					patchedZip.setLevel(9);
++					Set<String> processed = new HashSet<>();
++					for (PatchesMetadata.PatchMetadata patchMetadata : patchesMetadata.patches) {
++						current.incrementAndGet();
++						String statusLine = "Patching (" + current.get() + "/" + patchesSize + ") - " + patchMetadata.name;
++						int currentOutputLength = statusLine.length();
++						statusLine += " ".repeat(Math.max(0, lastOutputLength.get() - currentOutputLength));
++						lastOutputLength.set(currentOutputLength);
++						String finalStatusLine = statusLine;
++						printIgnoreRejection(finalStatusLine);
++						final byte[] originalBytes;
++						final ZipEntry originalEntry = classMappedZip.getEntry(applyRelocationsReverse(patchMetadata.name));
++						if (originalEntry != null)
++							try (final InputStream in = classMappedZip.getInputStream(originalEntry)) {
++								originalBytes = in.readAllBytes();
++							}
++						else originalBytes = new byte[0];
++						final byte[] patchBytes;
++						try (final InputStream in = HotpurPatcher.class.getClassLoader().getResourceAsStream("patches/" + patchMetadata.name + ".patch")) {
++							if (in == null)
++								throw new FileNotFoundException();
++							patchBytes = in.readAllBytes();
++						}
++						if (!patchMetadata.originalHash.equals(toHex(digest.digest(originalBytes))) || !patchMetadata.patchHash.equals(toHex(digest.digest(patchBytes))))
++							throw new FileNotFoundException("Hash do not match");
++
++						putNextEntrySafe(patchedZip, patchMetadata.name);
++						ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
++						Patch.patch(originalBytes, patchBytes, byteOut);
++						final byte[] patchedBytes = byteOut.toByteArray();
++						if (!patchMetadata.targetHash.equals(toHex(digest.digest(patchedBytes))))
++							throw new FileNotFoundException("Hash do not match");
++						patchedZip.write(patchedBytes);
++						patchedZip.closeEntry();
++						processed.add(patchMetadata.name);
++					}
++					awaitConsole();
++					System.out.print('\r');
++					System.out.print(" ".repeat(lastOutputLength.get()));
++					System.out.print('\r');
++					System.out.println("Patch completed, copying other files...");
++					current.set(0);
++					classMappedZip.entries().asIterator().forEachRemaining(zipEntry -> {
++						current.incrementAndGet();
++						if (zipEntry.isDirectory() || processed.contains(applyRelocations(zipEntry.getName())) || patchesMetadata.copyExcludes.contains(zipEntry.getName()))
++							return;
++						String statusLine = "Copying (" + current.get() + "/" + classMappedSize + ") - " + zipEntry.getName();
++						int currentOutputLength = statusLine.length();
++						statusLine += " ".repeat(Math.max(0, lastOutputLength.get() - currentOutputLength));
++						lastOutputLength.set(currentOutputLength);
++						String finalStatusLine = statusLine;
++						printIgnoreRejection(finalStatusLine);
++						try {
++							InputStream in = classMappedZip.getInputStream(zipEntry);
++							putNextEntrySafe(patchedZip, zipEntry.getName());
++							patchedZip.write(in.readAllBytes());
++							patchedZip.closeEntry();
++						} catch (Throwable t) {
++							Throwables.throwIfUnchecked(t);
++							throw new RuntimeException(t);
++						}
++					});
++					awaitConsole();
++					System.out.print('\r');
++					System.out.print(" ".repeat(lastOutputLength.get()));
++					System.out.print('\r');
++					System.out.println("Server jar patched");
++				}
++			}
++		} catch (Throwable t) {
++			Throwables.throwIfUnchecked(t);
++			throw new RuntimeException(t);
++		}
++	}
++
++	private static void putNextEntrySafe(ZipOutputStream patchedZip, String name) throws IOException {
++		String[] split = name.split("/");
++		split = Arrays.copyOfRange(split, 0, split.length - 1);
++		StringBuilder sb = new StringBuilder();
++		for(String s : split) {
++			sb.append(s).append("/");
++			try {
++				patchedZip.putNextEntry(new ZipEntry(sb.toString()));
++			} catch (ZipException e) {
++				if(e.getMessage().startsWith("duplicate entry"))
++					continue;
++				throw e;
++			}
++		}
++		final ZipEntry entry = new ZipEntry(name);
++		patchedZip.putNextEntry(entry);
++	}
++
++	private static void awaitConsole() {
++		CompletableFuture<Void> future = new CompletableFuture<>();
++		while (true)
++			try {
++				consoleExecutor.execute(() -> future.complete(null));
++				break;
++			} catch (RejectedExecutionException ignored) {
++			}
++		future.join();
++	}
++
++	private static void printIgnoreRejection(String finalStatusLine) {
++		try {
++			consoleExecutor.execute(() -> {
++				System.out.print('\r');
++				System.out.print(finalStatusLine);
++			});
++		} catch (RejectedExecutionException ignored) {
++		}
++	}
++
++	private static String applyRelocations(String name) {
++		if (!name.endsWith(".class")) return name;
++		if (name.indexOf('/') == -1)
++			name = "/" + name;
++		for (PatchesMetadata.Relocation relocation : patchesMetadata.relocations) {
++			if (name.startsWith(relocation.from) && (relocation.includeSubPackages || name.split("/").length == name.split("/").length - 1)) {
++				return relocation.to + name.substring(relocation.from.length());
++			}
++		}
++		return name;
++	}
++
++	private static String applyRelocationsReverse(String name) {
++		if (!name.endsWith(".class")) return name;
++		if (name.indexOf('/') == -1)
++			name = "/" + name;
++		for (PatchesMetadata.Relocation relocation : patchesMetadata.relocations) {
++			if (name.startsWith(relocation.to) && (relocation.includeSubPackages || name.split("/").length == name.split("/").length - 1)) {
++				return relocation.from + name.substring(relocation.to.length());
++			}
++		}
++		return name;
++	}
++
++}
+diff --git a/src/main/java/com/ishland/hotpur/fabricloader/PatchesMetadata.java b/src/main/java/com/ishland/hotpur/fabricloader/PatchesMetadata.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8eb18b3562399195440fd0385f649b4b634cb63a
+--- /dev/null
++++ b/src/main/java/com/ishland/hotpur/fabricloader/PatchesMetadata.java
+@@ -0,0 +1,52 @@
++package com.ishland.hotpur.fabricloader;
++
++import com.google.common.base.Preconditions;
++
++import java.io.Serializable;
++import java.util.Collections;
++import java.util.Set;
++
++public class PatchesMetadata {
++
++    public final Set<PatchMetadata> patches;
++    public final Set<Relocation> relocations;
++    public final Set<String> copyExcludes;
++
++    public PatchesMetadata(Set<PatchMetadata> patches, Set<Relocation> relocations, Set<String> copyExcludes) {
++        Preconditions.checkNotNull(copyExcludes);
++        this.copyExcludes = Collections.unmodifiableSet(copyExcludes);
++        Preconditions.checkNotNull(relocations);
++        this.relocations = Collections.unmodifiableSet(relocations);
++        Preconditions.checkNotNull(patches);
++        this.patches = Collections.unmodifiableSet(patches);
++    }
++
++    public static class PatchMetadata {
++        public final String name;
++        public final String originalHash;
++        public final String targetHash;
++        public final String patchHash;
++
++        public PatchMetadata(String name, String originalHash, String targetHash, String patchHash) {
++            this.name = name;
++            this.originalHash = originalHash;
++            this.targetHash = targetHash;
++            this.patchHash = patchHash;
++        }
++    }
++
++    public static class Relocation implements Serializable {
++
++        public final String from;
++        public final String to;
++        public final boolean includeSubPackages;
++
++        public Relocation(String from, String to, boolean includeSubPackages) {
++            Preconditions.checkNotNull(from);
++            Preconditions.checkNotNull(to);
++            this.from = from.replaceAll("\\.", "/");
++            this.to = to.replaceAll("\\.", "/");
++            this.includeSubPackages = includeSubPackages;
++        }
++    }
++}
 diff --git a/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db526fdf9bd2
+index 0000000000000000000000000000000000000000..f19a15f3d9608556e24c7398fad8b64c144ea283
 --- /dev/null
 +++ b/src/main/java/com/ishland/hotpur/fabricloader/ServerSetup.java
-@@ -0,0 +1,407 @@
+@@ -0,0 +1,380 @@
 +package com.ishland.hotpur.fabricloader;
 +
 +import com.google.common.base.Throwables;
@@ -1737,6 +2045,7 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +import org.apache.commons.compress.compressors.CompressorException;
 +
 +import java.io.BufferedOutputStream;
++import java.io.File;
 +import java.io.FileNotFoundException;
 +import java.io.FileOutputStream;
 +import java.io.IOException;
@@ -1752,8 +2061,11 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +import java.security.MessageDigest;
 +import java.security.NoSuchAlgorithmException;
 +import java.text.MessageFormat;
++import java.util.Collections;
++import java.util.HashSet;
 +import java.util.List;
 +import java.util.Properties;
++import java.util.Set;
 +import java.util.zip.ZipFile;
 +
 +import static java.nio.file.StandardOpenOption.CREATE;
@@ -1763,8 +2075,6 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +public class ServerSetup {
 +
 +	private static final String minecraftVersion;
-+	private static final String nmsRevision;
-+	private static final String patchedHash;
 +	private static final Path cacheDirectory;
 +	private static final Gson gson = new Gson();
 +
@@ -1779,8 +2089,6 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +			throw new RuntimeException(e);
 +		}
 +		minecraftVersion = prop.getProperty("minecraftVersion");
-+		nmsRevision = prop.getProperty("nmsRevision");
-+		patchedHash = prop.getProperty("patchedHash");
 +		cacheDirectory = Paths.get("cache", minecraftVersion);
 +		cacheDirectory.toFile().mkdirs();
 +	}
@@ -1837,28 +2145,11 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +				throw new RuntimeException("Unable to apply mappings");
 +		}
 +
-+		if (!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar)) {
++		if (!HotpurPatcher.isJarUpToDate(patchedJar)){
 +			System.err.println("Applying patches...");
-+			byte[] origin = Files.readAllBytes(memberMappedJar);
-+			byte[] patch;
-+			try (final InputStream in = ServerSetup.class.getClassLoader().getResourceAsStream("hotpur.patch")) {
-+				if (in == null) throw new FileNotFoundException("hotpur.patch");
-+				patch = in.readAllBytes();
-+			}
-+			try (final OutputStream out = new BufferedOutputStream(new FileOutputStream(patchedJar.toFile()))) {
-+				Patch.patch(origin, patch, out);
-+			}
-+			if (!isValidZip(patchedJar) || !isValidPatchedJar(patchedJar))
-+				throw new RuntimeException("Unable to apply patch");
-+		}
-+	}
-+
-+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
-+	private static boolean isValidPatchedJar(Path patchedJar) throws IOException {
-+		try {
-+			return patchedHash.equals(toHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(patchedJar))));
-+		} catch (NoSuchAlgorithmException e) {
-+			throw new RuntimeException(e);
++			HotpurPatcher.patchJar(classMappedJar, patchedJar);
++			if(!HotpurPatcher.isJarUpToDate(patchedJar))
++				throw new RuntimeException("Unable to apply patches");
 +		}
 +	}
 +
@@ -1866,16 +2157,6 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +	private static boolean isValidZip(Path zipPath) {
 +		try {
 +			ZipFile zipFile = new ZipFile(zipPath.toFile());
-+			zipFile.entries().asIterator().forEachRemaining(zipEntry -> {
-+				try (
-+						final InputStream source = zipFile.getInputStream(zipEntry)
-+				) {
-+					source.readAllBytes();
-+				} catch (Throwable t) {
-+					Throwables.throwIfUnchecked(t);
-+					throw new RuntimeException(t);
-+				}
-+			});
 +			zipFile.close();
 +		} catch (Throwable t) {
 +			return false;
@@ -1947,7 +2228,7 @@ index 0000000000000000000000000000000000000000..72baa86b346953d23f1f5d5764a7db52
 +		}
 +	}
 +
-+	private static String toHex(final byte[] hash) {
++	static String toHex(final byte[] hash) {
 +		final StringBuilder sb = new StringBuilder(hash.length * 2);
 +		for (byte aHash : hash) {
 +			sb.append(String.format("%02X", aHash & 0xFF));
