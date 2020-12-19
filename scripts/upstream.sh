@@ -31,10 +31,7 @@ fi
 purpurVer=$(gethead Purpur)
 cd "$basedir/Purpur/" || exit
 
-./purpur up
-./purpur patch
-git reset HEAD current-paper
-git checkout -- current-paper
+./gradlew applyPatches
 
 cd "Purpur-Server" || exit
 mcVer=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=minecraft_version | sed -n -e '/^\[.*\]/ !{ /^[0-9]/ { p; q } }')
