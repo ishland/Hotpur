@@ -25,6 +25,13 @@ if [[ "$1" == up* ]]; then
     cd ../
     git add fabric-loader
     )
+
+    (
+    cd "$basedir/HotpurMappings/" || exit
+    git checkout main && git pull && git reset --hard && git submodule update --init --recursive -f
+    cd ../
+    git add HotpurMappings
+    )
   )
 fi
 

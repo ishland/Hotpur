@@ -27,7 +27,7 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb5628cd00 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5eb7e50d05 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,15 +1,22 @@
@@ -142,7 +142,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb
  }
  
  javadoc {
-@@ -157,59 +172,47 @@ task javadocJar(type: Jar) {
+@@ -157,59 +172,57 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  
@@ -185,19 +185,6 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb
 -				classifier = "launchwrapper"
 -			}
 -		}
--	}
--
--	// select the repositories you want to publish to
--	repositories {
--		if (ENV.MAVEN_URL) {
--			maven {
--				url ENV.MAVEN_URL
--				credentials {
--					username ENV.MAVEN_USERNAME
--					password ENV.MAVEN_PASSWORD
--				}
--			}
--		}
 +assemble.dependsOn(shadowJar)
 +
 +task genPatches(type: MakePatchesTask) {
@@ -221,6 +208,22 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb
 +		prop.setProperty("minecraftVersion", project.minecraft_version)
 +		PropertiesUtils.saveProperties(prop, getOutputDir().toPath().getParent().resolve("hotpur-launch.properties"), "Hotpur launch values")
  	}
++}
+ 
+-	// select the repositories you want to publish to
+-	repositories {
+-		if (ENV.MAVEN_URL) {
+-			maven {
+-				url ENV.MAVEN_URL
+-				credentials {
+-					username ENV.MAVEN_USERNAME
+-					password ENV.MAVEN_PASSWORD
+-				}
+-			}
+-		}
+-	}
++jar {
++	enabled false
  }
  
 -// A task to ensure that the version being released has not already been released.
@@ -231,15 +234,20 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..ebe36f6eb223b4e6f53b2daa7b5bb9bb
 -		def versions = metadata.versioning.versions.version*.text();
 -		if (versions.contains(version)) {
 -			throw new RuntimeException("${version} has already been released!")
--		}
--	}
-+jar {
-+	enabled false
++processResources {
++	dependsOn genPatches
++	doLast {
++		copy {
++			from("../HotpurMappings/${project.minecraft_version}.tiny") {
++				rename { "mappings.tiny" }
++			}
++			into 'build/resources/main/mappings'
+ 		}
+ 	}
  }
- 
+-
 -publish.mustRunAfter checkVersion
 \ No newline at end of file
-+processResources.dependsOn(genPatches)
 diff --git a/gradle.properties b/gradle.properties
 index fb798d7131b2d6e4b207e36a8faca6dba122ebaa..112e238874de14854495107a0a74f9ec63932d02 100644
 --- a/gradle.properties
@@ -2415,6 +2423,72 @@ index 0000000000000000000000000000000000000000..f19a15f3d9608556e24c7398fad8b64c
 +		}
 +	}
 +}
+diff --git a/src/main/java/net/fabricmc/loader/FabricLoader.java b/src/main/java/net/fabricmc/loader/FabricLoader.java
+index 772d70c73ab4ae5afd5546a9666573ee19f2e2c0..70bf2fc6c8f043371a9a0f2e5fd8b7c0c78b1a40 100644
+--- a/src/main/java/net/fabricmc/loader/FabricLoader.java
++++ b/src/main/java/net/fabricmc/loader/FabricLoader.java
+@@ -206,7 +206,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
+ 	private void setup() throws ModResolutionException {
+ 		ModResolver resolver = new ModResolver();
+ 		resolver.addCandidateFinder(new ClasspathModCandidateFinder());
+-		resolver.addCandidateFinder(new DirectoryModCandidateFinder(getModsDir(), isDevelopmentEnvironment()));
++		resolver.addCandidateFinder(new DirectoryModCandidateFinder(getModsDir(), true));
+ 		Map<String, ModCandidate> candidateMap = resolver.resolve(this);
+ 
+ 		String modText;
+@@ -228,19 +228,8 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
+ 
+ 		boolean runtimeModRemapping = isDevelopmentEnvironment();
+ 
+-		if (runtimeModRemapping && System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE) == null) {
+-			LOGGER.warn("Runtime mod remapping disabled due to no fabric.remapClasspathFile being specified. You may need to update loom.");
+-			runtimeModRemapping = false;
+-		}
+-
+-		if (runtimeModRemapping) {
+-			for (ModCandidate candidate : RuntimeModRemapper.remap(candidateMap.values(), ModResolver.getInMemoryFs())) {
+-				addMod(candidate);
+-			}
+-		} else {
+-			for (ModCandidate candidate : candidateMap.values()) {
+-				addMod(candidate);
+-			}
++		for (ModCandidate candidate : RuntimeModRemapper.remap(candidateMap.values(), ModResolver.getInMemoryFs())) {
++			addMod(candidate);
+ 		}
+ 	}
+ 
+diff --git a/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java b/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
+index 9939465b20bb6512bfe6ad181b8e22052df1c510..2007cc0c3753b43fccd9a452882f87504ab4af2c 100644
+--- a/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
++++ b/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
+@@ -169,7 +169,7 @@ public final class RuntimeModRemapper {
+ 			AccessWidenerReader accessWidenerReader = new AccessWidenerReader(accessWidener);
+ 			accessWidenerReader.read(bufferedReader, "intermediary");
+ 
+-			AccessWidenerRemapper accessWidenerRemapper = new AccessWidenerRemapper(accessWidener, remapper, "named");
++			AccessWidenerRemapper accessWidenerRemapper = new AccessWidenerRemapper(accessWidener, remapper, "spigot");
+ 			AccessWidener remapped = accessWidenerRemapper.remap();
+ 			AccessWidenerWriter accessWidenerWriter = new AccessWidenerWriter(remapped);
+ 
+@@ -184,14 +184,10 @@ public final class RuntimeModRemapper {
+ 
+ 	private static List<Path> getRemapClasspath() throws IOException {
+ 		String remapClasspathFile = System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE);
++		String remapClasspath = System.getProperty(SystemProperties.REMAP_CLASSPATH);
++		if(remapClasspath == null) remapClasspath = new String(Files.readAllBytes(Paths.get(remapClasspathFile)), StandardCharsets.UTF_8);
+ 
+-		if (remapClasspathFile == null) {
+-			throw new RuntimeException("No remapClasspathFile provided");
+-		}
+-
+-		String content = new String(Files.readAllBytes(Paths.get(remapClasspathFile)), StandardCharsets.UTF_8);
+-
+-		return Arrays.stream(content.split(File.pathSeparator))
++		return Arrays.stream(remapClasspath.split(File.pathSeparator))
+ 				.map(Paths::get)
+ 				.collect(Collectors.toList());
+ 	}
 diff --git a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java b/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
 index 99595029a26a6badb8eb5755ceddb2c052b69d66..6a72e16679dece603194307dabede06f5294975d 100644
 --- a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
@@ -2445,8 +2519,62 @@ index 99595029a26a6badb8eb5755ceddb2c052b69d66..6a72e16679dece603194307dabede06f
  		}
  
  		Optional<GameProviderHelper.EntrypointResult> entrypointResult = GameProviderHelper.findFirstClass(loader, entrypointClasses);
+diff --git a/src/main/java/net/fabricmc/loader/launch/FabricTweaker.java b/src/main/java/net/fabricmc/loader/launch/FabricTweaker.java
+index 1ab9e023b57f79917016ee147a2b9bbf9e9e24da..8faed48146c4dc02beb06ea8e74a6cbec4f3df94 100644
+--- a/src/main/java/net/fabricmc/loader/launch/FabricTweaker.java
++++ b/src/main/java/net/fabricmc/loader/launch/FabricTweaker.java
+@@ -69,8 +69,7 @@ public abstract class FabricTweaker extends FabricLauncherBase implements ITweak
+ 
+ 	@Override
+ 	public String getTargetNamespace() {
+-		// TODO: Won't work outside of Yarn
+-		return isDevelopment ? "named" : "intermediary";
++		return "spigot";
+ 	}
+ 
+ 	@Override
+@@ -91,7 +90,7 @@ public abstract class FabricTweaker extends FabricLauncherBase implements ITweak
+ 
+ 	@Override
+ 	public void injectIntoClassLoader(LaunchClassLoader launchClassLoader) {
+-		isDevelopment = Boolean.parseBoolean(System.getProperty(SystemProperties.DEVELOPMENT, "false"));
++		isDevelopment = true;
+ 		Launch.blackboard.put(SystemProperties.DEVELOPMENT, isDevelopment);
+ 		setProperties(Launch.blackboard);
+ 
+diff --git a/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java b/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
+index 499734277776a7db5e0e4ac3a5b4f982ae993817..69493afbd16520abed3bacd37d99f621553c461f 100644
+--- a/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
++++ b/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
+@@ -74,7 +74,7 @@ public abstract class FabricLauncherBase implements FabricLauncher {
+ 		TinyTree mappings = launcher.isDevelopment() ? null : mappingConfiguration.getMappings();
+ 		String targetNamespace = mappingConfiguration.getTargetNamespace();
+ 
+-		if (mappings != null && mappings.getMetadata().getNamespaces().contains(targetNamespace)) {
++		if (false) {
+ 			LOGGER.debug("Fabric mapping file detected, applying...");
+ 
+ 			try {
+diff --git a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java b/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
+index a01b6b1de85aa801a9fb0ed6e88aa81c14d9752c..6117560b9471f5daf494ece8392602a1dd87e801 100644
+--- a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
++++ b/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
+@@ -65,11 +65,10 @@ public class MappingConfiguration {
+ 	}
+ 
+ 	public String getTargetNamespace() {
+-		return FabricLauncherBase.getLauncher().isDevelopment() ? "named" : "intermediary";
++		return "spigot";
+ 	}
+ 
+ 	public boolean requiresPackageAccessHack() {
+-		// TODO
+-		return getTargetNamespace().equals("named");
++		return true;
+ 	}
+ }
 diff --git a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
-index 93988b246969cc8ae48f35617ef30fc0a526a339..effd37bb805841133a5596aa91ff49414de65b07 100644
+index 93988b246969cc8ae48f35617ef30fc0a526a339..0b13fe2739c7bc97aa9a2aa5ed63407d0096550c 100644
 --- a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
 +++ b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
 @@ -52,6 +52,7 @@ public final class Knot extends FabricLauncherBase {
@@ -2457,11 +2585,21 @@ index 93988b246969cc8ae48f35617ef30fc0a526a339..effd37bb805841133a5596aa91ff4941
  		setProperties(properties);
  
  		// configure fabric vars
+@@ -143,8 +144,7 @@ public final class Knot extends FabricLauncherBase {
+ 
+ 	@Override
+ 	public String getTargetNamespace() {
+-		// TODO: Won't work outside of Yarn
+-		return isDevelopment ? "named" : "intermediary";
++		return "spigot";
+ 	}
+ 
+ 	@Override
 diff --git a/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java b/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java
-index 0a3f09ee88094ce72ec4c11e734cee776bb026de..cfa59bb045bdbb1a2300acff246c5d628114b31d 100644
+index 0a3f09ee88094ce72ec4c11e734cee776bb026de..a0bb356ece4810c23d6459a3b47e2f0f3592da3f 100644
 --- a/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java
 +++ b/src/main/java/net/fabricmc/loader/launch/server/FabricServerLauncher.java
-@@ -16,12 +16,16 @@
+@@ -16,13 +16,20 @@
  
  package net.fabricmc.loader.launch.server;
  
@@ -2472,13 +2610,17 @@ index 0a3f09ee88094ce72ec4c11e734cee776bb026de..cfa59bb045bdbb1a2300acff246c5d62
 +import org.apache.commons.compress.compressors.CompressorException;
  
  import java.io.*;
++import java.net.URISyntaxException;
  import java.net.URL;
  import java.net.URLClassLoader;
 +import java.nio.file.Path;
++import java.nio.file.Paths;
  import java.util.*;
++import java.util.stream.Collectors;
  
  public class FabricServerLauncher {
-@@ -65,41 +69,10 @@ public class FabricServerLauncher {
+ 	private static final ClassLoader parentLoader = FabricServerLauncher.class.getClassLoader();
+@@ -65,43 +72,20 @@ public class FabricServerLauncher {
  		}
  	}
  
@@ -2521,8 +2663,19 @@ index 0a3f09ee88094ce72ec4c11e734cee776bb026de..cfa59bb045bdbb1a2300acff246c5d62
 +		Path serverJar = ServerSetup.setup();
 +		System.setProperty(SystemProperties.GAME_JAR_PATH, serverJar.toFile().getAbsolutePath());
  		try {
- 			URLClassLoader newClassLoader = new InjectingURLClassLoader(new URL[] { FabricServerLauncher.class.getProtectionDomain().getCodeSource().getLocation(), UrlUtil.asUrl(serverJar) }, parentLoader, "com.google.common.jimfs.");
+-			URLClassLoader newClassLoader = new InjectingURLClassLoader(new URL[] { FabricServerLauncher.class.getProtectionDomain().getCodeSource().getLocation(), UrlUtil.asUrl(serverJar) }, parentLoader, "com.google.common.jimfs.");
++			final URL[] urls = {FabricServerLauncher.class.getProtectionDomain().getCodeSource().getLocation(), UrlUtil.asUrl(serverJar)};
++			System.setProperty(SystemProperties.REMAP_CLASSPATH, String.join(File.pathSeparator, Arrays.stream(urls).map(url -> {
++				try {
++					return Paths.get(url.toURI()).toString();
++				} catch (URISyntaxException e) {
++					throw new RuntimeException(e);
++				}
++			}).toArray(String[]::new)));
++			URLClassLoader newClassLoader = new InjectingURLClassLoader(urls, parentLoader, "com.google.common.jimfs.");
  			Thread.currentThread().setContextClassLoader(newClassLoader);
+ 			launch(mainClass, newClassLoader, runArguments);
+ 		} catch (Exception ex) {
 diff --git a/src/main/java/net/fabricmc/loader/metadata/ModMetadataParser.java b/src/main/java/net/fabricmc/loader/metadata/ModMetadataParser.java
 index 51514534a0fc6c88ed52bafb1fb4d60463a77b86..2fbba29e163ea25dc03f9b6b040280d6fc041f4f 100644
 --- a/src/main/java/net/fabricmc/loader/metadata/ModMetadataParser.java
@@ -2536,6 +2689,18 @@ index 51514534a0fc6c88ed52bafb1fb4d60463a77b86..2fbba29e163ea25dc03f9b6b040280d6
  	public static final int LATEST_VERSION = 1;
  
  	// Per the ECMA-404 (www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf), the JSON spec does not prohibit duplicate keys.
+diff --git a/src/main/java/net/fabricmc/loader/util/SystemProperties.java b/src/main/java/net/fabricmc/loader/util/SystemProperties.java
+index 785f3768dae89a92b6ee8ff815562018be2e8661..cc4ea7eb68b6d5596eccc5a7d15945ef5d689c82 100644
+--- a/src/main/java/net/fabricmc/loader/util/SystemProperties.java
++++ b/src/main/java/net/fabricmc/loader/util/SystemProperties.java
+@@ -21,6 +21,7 @@ public final class SystemProperties {
+ 	public static final String SIDE = "fabric.side";
+ 	public static final String GAME_JAR_PATH = "fabric.gameJarPath";
+ 	public static final String REMAP_CLASSPATH_FILE = "fabric.remapClasspathFile";
++	public static final String REMAP_CLASSPATH = "fabric.remapClasspath";
+ 
+ 	private SystemProperties() {
+ 	}
 diff --git a/src/test/java/net/fabricmc/test/mixin/MixinGuiMain.java b/src/test/java/net/fabricmc/test/mixin/MixinGuiMain.java
 deleted file mode 100644
 index b4da640e19eb9d0c6a9fde657afae598ee61cbd6..0000000000000000000000000000000000000000

@@ -5,3 +5,6 @@
 [submodule "fabric-loader"]
 	path = fabric-loader
 	url = https://github.com/FabricMC/fabric-loader.git
+[submodule "HotpurMappings"]
+	path = HotpurMappings
+	url = https://github.com/ishlandbukkit/HotpurMappings.git

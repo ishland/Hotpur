@@ -14,10 +14,12 @@ pluginManagement {
 
 rootProject.name = 'hotpur-parent'
 
-if(!rootProject.projectDir.toPath().resolve("Hotpur-API").resolve("build.gradle").toFile().isFile()
+if (!rootProject.projectDir.toPath().resolve("Hotpur-API").resolve("build.gradle").toFile().isFile()
         || !rootProject.projectDir.toPath().resolve("Hotpur-API").resolve("build.gradle").toFile().isFile()
-        || !rootProject.projectDir.toPath().resolve("Hotpur-fabric-loader").resolve("build.gradle").toFile().isFile()) {
-    if(!rootProject.projectDir.toPath().resolve("Purpur").resolve("Purpur-Sevrer").resolve("pom.xml").toFile().isFile()) {
+        || !rootProject.projectDir.toPath().resolve("Hotpur-fabric-loader").resolve("build.gradle").toFile().isFile()
+        || !rootProject.projectDir.toPath().resolve("HotpurMappings").resolve("LICENSE").toFile().isFile()) {
+    if (!rootProject.projectDir.toPath().resolve("Purpur").resolve("Purpur-Sevrer").resolve("pom.xml").toFile().isFile()
+            || !rootProject.projectDir.toPath().resolve("HotpurMappings").resolve("LICENSE").toFile().isFile()) {
         print "Updating upstream"
         exec {
             workingDir rootProject.projectDir
