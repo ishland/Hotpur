@@ -96,7 +96,7 @@ index 0000000000000000000000000000000000000000..6fb295ad61ca05a54488da855f36b5da
 +    exclude "org/bukkit/craftbukkit/inventory/ItemStack*Test.class"
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
-index 3b9b44851c5832a3660a73449b52478c73ffb23a..829193bbdecd5564301b7210756815ca9d8725e1 100644
+index 4d8740678049aa749b42618470e9cc838555528d..fcc053b2bb0562ac08c5e8fd4766726f23b50c66 100644
 --- a/src/main/java/com/destroystokyo/paper/Metrics.java
 +++ b/src/main/java/com/destroystokyo/paper/Metrics.java
 @@ -1,5 +1,6 @@
@@ -106,7 +106,7 @@ index 3b9b44851c5832a3660a73449b52478c73ffb23a..829193bbdecd5564301b7210756815ca
  import net.minecraft.server.MinecraftServer;
  import org.bukkit.Bukkit;
  import org.bukkit.configuration.file.YamlConfiguration;
-@@ -595,7 +596,7 @@ public class Metrics {
+@@ -603,7 +604,7 @@ public class Metrics {
  
                  metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
                  metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : (PaperConfig.isProxyOnlineMode() ? "bungee" : "offline"))); // Purpur
@@ -274,7 +274,7 @@ index 0000000000000000000000000000000000000000..d23e23635b902c89b7bb059f07318942
 +
 +}
 diff --git a/src/main/java/net/pl3x/purpur/PurpurConfig.java b/src/main/java/net/pl3x/purpur/PurpurConfig.java
-index 7e0078e9c989fa0abf0eafc822eb3b81e9388c07..b5ff09f330abc9fb1a2ca859a4603735ba907a41 100644
+index dbda80c9a57dc7a1882a00020b407dd69a187649..8e9f2e3b166beeb0ce4acd8914486950889f26c9 100644
 --- a/src/main/java/net/pl3x/purpur/PurpurConfig.java
 +++ b/src/main/java/net/pl3x/purpur/PurpurConfig.java
 @@ -180,7 +180,7 @@ public class PurpurConfig {

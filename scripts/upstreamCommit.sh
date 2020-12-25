@@ -16,15 +16,15 @@
   updatedMultiple=""
   if [ -n "$purpur" ]; then
     logsuffix="$logsuffix\n\nPurpur Changes:\n$purpur"
-    if [ -z "$updated" ]; then updated="Purpur"; else updated="$updated,Purpur"; updatedMultiple="s"; fi
+    if [ -z "$updated" ]; then updated="Purpur"; else updated="$updated/Purpur"; updatedMultiple="s"; fi
   fi
   if [ -n "$fabric_loader" ]; then
     logsuffix="$logsuffix\n\nfabric-loader Changes:\n$fabric_loader"
-    if [ -z "$updated" ]; then updated="fabric-loader"; else updated="$updated,fabric-loader"; updatedMultiple="s"; fi
+    if [ -z "$updated" ]; then updated="fabric-loader"; else updated="$updated/fabric-loader"; updatedMultiple="s"; fi
   fi
   if [ -n "$hotpur_mappings" ]; then
-    logsuffix="$logsuffix\n\HotpurMappings Changes:\n$hotpur_mappings"
-    if [ -z "$updated" ]; then updated="HotpurMappings"; else updated="$updated,HotpurMappings"; updatedMultiple="s"; fi
+    logsuffix="$logsuffix\n\nHotpurMappings Changes:\n$hotpur_mappings"
+    if [ -z "$updated" ]; then updated="HotpurMappings"; else updated="$updated/HotpurMappings"; updatedMultiple="s"; fi
   fi
   disclaimer="Upstream has released updates that appears to apply and compile correctly\nThis update has NOT been tested by ishlandbukkit and as with ANY update, please do your own testing."
 
