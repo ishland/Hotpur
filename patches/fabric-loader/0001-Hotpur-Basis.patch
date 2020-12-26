@@ -27,7 +27,7 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..0dc167bfd343b77ac1f1c3dd148545a06c977143 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0ffb2abbb4 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,15 +1,16 @@
@@ -144,16 +144,15 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..0dc167bfd343b77ac1f1c3dd148545a0
 -license {
 -	header file("HEADER")
 -	include '**/*.java'
--
++shadowJar {
+ 
 -	// Exclude gson since it is google's code, we just modify and bundle it
 -	exclude '**/lib/gson/*.java'
-+shadowJar {
 +	// Copied from Hotpur-Server
 +	relocate 'jline', 'org.bukkit.craftbukkit.libs.jline'
 +	relocate 'org.apache.commons.codec', 'org.bukkit.craftbukkit.libs.org.apache.commons.codec'
 +	relocate 'org.apache.commons.io', 'org.bukkit.craftbukkit.libs.org.apache.commons.io'
 +	relocate 'org.apache.commons.lang3', 'org.bukkit.craftbukkit.libs.org.apache.commons.lang3'
-+	relocate 'org.objectweb.asm', 'org.bukkit.craftbukkit.libs.org.objectweb.asm'
 +	relocate('org.bukkit.craftbukkit', "org.bukkit.craftbukkit.v${project.nms_revision}"){
 +		exclude 'org.bukkit.craftbukkit.Main*'
 +	}
@@ -2612,7 +2611,7 @@ index 1ab9e023b57f79917016ee147a2b9bbf9e9e24da..8faed48146c4dc02beb06ea8e74a6cbe
  		setProperties(Launch.blackboard);
  
 diff --git a/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java b/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
-index 7525f174c2a77ec2daa4220da6c94de80b7c8f5a..3d094d90fffaa105736559299f5b139778598166 100644
+index 7525f174c2a77ec2daa4220da6c94de80b7c8f5a..d1d872174c1090af330ebc7afb8a5585a73179cd 100644
 --- a/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
 +++ b/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
 @@ -58,7 +58,7 @@ public final class FabricMixinBootstrap {
@@ -2624,6 +2623,18 @@ index 7525f174c2a77ec2daa4220da6c94de80b7c8f5a..3d094d90fffaa105736559299f5b1397
  			MappingConfiguration mappingConfiguration = FabricLauncherBase.getLauncher().getMappingConfiguration();
  			TinyTree mappings = mappingConfiguration.getMappings();
  
+@@ -70,9 +70,9 @@ public final class FabricMixinBootstrap {
+ 					try {
+ 						MixinIntermediaryDevRemapper remapper = new MixinIntermediaryDevRemapper(mappings, "intermediary", mappingConfiguration.getTargetNamespace());
+ 						MixinEnvironment.getDefaultEnvironment().getRemappers().add(remapper);
+-						LOGGER.info("Loaded Fabric development mappings for mixin remapper!");
++						LOGGER.info("Loaded Fabric Hotpur mappings for mixin remapper!");
+ 					} catch (Exception e) {
+-						LOGGER.error("Fabric development environment setup error - the game will probably crash soon!");
++						LOGGER.error("Fabric Hotpur environment setup error - the game will probably crash soon!");
+ 						e.printStackTrace();
+ 					}
+ 				}
 diff --git a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java b/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
 index a01b6b1de85aa801a9fb0ed6e88aa81c14d9752c..6117560b9471f5daf494ece8392602a1dd87e801 100644
 --- a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
@@ -2783,6 +2794,34 @@ index 785f3768dae89a92b6ee8ff815562018be2e8661..cc4ea7eb68b6d5596eccc5a7d15945ef
  
  	private SystemProperties() {
  	}
+diff --git a/src/main/java/net/fabricmc/loader/util/mappings/MixinIntermediaryDevRemapper.java b/src/main/java/net/fabricmc/loader/util/mappings/MixinIntermediaryDevRemapper.java
+index f3b57439bfe6c5c1b682bb5a1ab99982de170758..82bfe90c264e4eb695ac36e0c1595e336938167b 100644
+--- a/src/main/java/net/fabricmc/loader/util/mappings/MixinIntermediaryDevRemapper.java
++++ b/src/main/java/net/fabricmc/loader/util/mappings/MixinIntermediaryDevRemapper.java
+@@ -102,6 +102,12 @@ public class MixinIntermediaryDevRemapper extends MixinRemapper {
+ 				newName = nameDescMethodLookup.get(getNameDescKey(name, desc));
+ 			}
+ 
++			// Hotpur start - try unknown descriptor
++			if(newName == null) {
++				newName = nameDescMethodLookup.get(getNameDescKey(name, "Lunk;"));
++			}
++			// Hotpur end
++
+ 			if (newName != null) {
+ 				if (newName == ambiguousName) {
+ 					if (owner == null) {
+@@ -167,6 +173,10 @@ public class MixinIntermediaryDevRemapper extends MixinRemapper {
+ 		// handle unambiguous values early
+ 		if (owner == null || allPossibleClassNames.contains(owner)) {
+ 			String newName = nameDescFieldLookup.get(getNameDescKey(name, desc));
++			// Hotpur start - try unknown descriptor
++			if (newName == null)
++				newName = nameDescFieldLookup.get(getNameDescKey(name, "Lunk;"));
++			// Hotpur end
+ 
+ 			if (newName != null) {
+ 				if (newName == ambiguousName) {
 diff --git a/src/test/java/net/fabricmc/test/mixin/MixinGuiMain.java b/src/test/java/net/fabricmc/test/mixin/MixinGuiMain.java
 deleted file mode 100644
 index b4da640e19eb9d0c6a9fde657afae598ee61cbd6..0000000000000000000000000000000000000000

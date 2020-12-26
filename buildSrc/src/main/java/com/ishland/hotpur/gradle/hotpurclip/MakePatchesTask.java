@@ -93,7 +93,7 @@ public class MakePatchesTask extends DefaultTask {
     }
 
     @TaskAction
-    public void genPatches() throws IOException, NoSuchAlgorithmException, InterruptedException {
+    public void genPatches() throws IOException, InterruptedException {
         Preconditions.checkNotNull(originalJar);
         Preconditions.checkNotNull(targetJar);
 
@@ -129,7 +129,7 @@ public class MakePatchesTask extends DefaultTask {
             }
         });
         ThreadLocal<ProgressLogger> progressLoggerThreadLocal = ThreadLocal.withInitial(() -> {
-            final ProgressLogger progressLogger = getProgressLoggerFactory().newOperation(getClass());
+            final ProgressLogger progressLogger = getProgressLoggerFactory().newOperation(this.getClass());
             progressLogger.setDescription("Patch worker");
             progressLogger.started("Idle");
             return progressLogger;
