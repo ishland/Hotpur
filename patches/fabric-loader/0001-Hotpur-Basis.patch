@@ -27,20 +27,14 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5eb7e50d05 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..0dc167bfd343b77ac1f1c3dd148545a06c977143 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -1,15 +1,22 @@
-+import com.github.jengelman.gradle.plugins.shadow.relocation.RelocateClassContext
-+import com.github.jengelman.gradle.plugins.shadow.relocation.RelocatePathContext
-+import com.github.jengelman.gradle.plugins.shadow.relocation.Relocator
+@@ -1,15 +1,16 @@
 +import com.ishland.hotpur.gradle.hotpurclip.MakePatchesTask
 +import com.ishland.hotpur.gradle.hotpurclip.PatchesMetadata
 +import com.ishland.hotpur.gradle.utils.PropertiesUtils
-+
-+import java.nio.file.Files
-+import java.security.MessageDigest
-+import java.util.regex.Pattern
++import org.apache.commons.io.FileUtils
 +
  plugins {
  	id 'java'
@@ -59,7 +53,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  archivesBaseName = "fabric-loader"
  
  // Fetch build number from Jenkins
-@@ -27,11 +34,16 @@ repositories {
+@@ -27,11 +28,16 @@ repositories {
  		name = 'mojang'
  		url = 'https://libraries.minecraft.net/'
  	}
@@ -78,7 +72,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  
  	// fabric-loader dependencies
  	implementation "org.ow2.asm:asm:${project.asm_version}"
-@@ -49,7 +61,6 @@ dependencies {
+@@ -49,7 +55,6 @@ dependencies {
  
  	implementation('net.fabricmc:sponge-mixin:0.8.2+build.24') {
  		exclude module: 'launchwrapper'
@@ -86,7 +80,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  	}
  	implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
  	implementation 'net.fabricmc:tiny-remapper:0.3.0.70'
-@@ -68,6 +79,14 @@ dependencies {
+@@ -68,6 +73,15 @@ dependencies {
  
  	// Unit testing for mod metadata
  	testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
@@ -98,10 +92,11 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
 +	implementation group: 'org.tukaani', name: 'xz', version: '1.8'
 +	implementation 'org.apache.logging.log4j:log4j-core:2.8.1'
 +	implementation 'org.apache.logging.log4j:log4j-iostreams:2.8.1'
++	implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
  }
  
  processResources {
-@@ -83,6 +102,9 @@ java {
+@@ -83,6 +97,9 @@ java {
  	// if it is present.
  	// If you remove this task, sources will not be generated.
  	withSourcesJar()
@@ -111,7 +106,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  }
  
  jar {
-@@ -97,14 +119,14 @@ jar {
+@@ -97,14 +114,14 @@ jar {
  	}
  }
  
@@ -128,7 +123,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  	from('src/main/resources/fabric-installer.launchwrapper.json') {
  		rename { "${archivesBaseName}-${version}.launchwrapper.json" }
  	}
-@@ -116,13 +138,6 @@ tasks.build.dependsOn "copyJsonLw"
+@@ -116,13 +133,6 @@ tasks.build.dependsOn "copyJsonLw"
  
  tasks.withType(JavaCompile).configureEach {
  	it.options.encoding = "UTF-8"
@@ -142,7 +137,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
  }
  
  javadoc {
-@@ -157,59 +172,57 @@ task javadocJar(type: Jar) {
+@@ -157,59 +167,59 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  
@@ -237,6 +232,8 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..f350bb96c259261c9683768b043dcd5e
 +processResources {
 +	dependsOn genPatches
 +	doLast {
++		if (new File(buildDir, "resources/main/mappings").isDirectory())
++			FileUtils.cleanDirectory(new File(buildDir, "resources/main/mappings"))
 +		copy {
 +			from("../HotpurMappings/${project.minecraft_version}.tiny") {
 +				rename { "mappings.tiny" }
@@ -2424,10 +2421,39 @@ index 0000000000000000000000000000000000000000..f19a15f3d9608556e24c7398fad8b64c
 +	}
 +}
 diff --git a/src/main/java/net/fabricmc/loader/FabricLoader.java b/src/main/java/net/fabricmc/loader/FabricLoader.java
-index 772d70c73ab4ae5afd5546a9666573ee19f2e2c0..70bf2fc6c8f043371a9a0f2e5fd8b7c0c78b1a40 100644
+index 772d70c73ab4ae5afd5546a9666573ee19f2e2c0..4738db12e10b36448bceeda422c7a6afc36ae74b 100644
 --- a/src/main/java/net/fabricmc/loader/FabricLoader.java
 +++ b/src/main/java/net/fabricmc/loader/FabricLoader.java
-@@ -206,7 +206,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
+@@ -20,11 +20,18 @@ import java.io.BufferedReader;
+ import java.io.File;
+ import java.io.IOException;
+ import java.net.URL;
++import java.nio.file.CopyOption;
++import java.nio.file.FileVisitOption;
++import java.nio.file.FileVisitResult;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.nio.file.SimpleFileVisitor;
++import java.nio.file.attribute.BasicFileAttributes;
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.Collections;
++import java.util.EnumSet;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -35,6 +42,9 @@ import java.util.stream.Stream;
+ 
+ import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
+ import net.fabricmc.loader.discovery.RuntimeModRemapper;
++import org.apache.commons.io.FileUtils;
++import org.apache.commons.io.file.CopyDirectoryVisitor;
++import org.apache.commons.io.file.PathUtils;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+@@ -206,7 +216,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
  	private void setup() throws ModResolutionException {
  		ModResolver resolver = new ModResolver();
  		resolver.addCandidateFinder(new ClasspathModCandidateFinder());
@@ -2436,15 +2462,17 @@ index 772d70c73ab4ae5afd5546a9666573ee19f2e2c0..70bf2fc6c8f043371a9a0f2e5fd8b7c0
  		Map<String, ModCandidate> candidateMap = resolver.resolve(this);
  
  		String modText;
-@@ -228,19 +228,8 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
+@@ -228,19 +238,23 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
  
  		boolean runtimeModRemapping = isDevelopmentEnvironment();
  
 -		if (runtimeModRemapping && System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE) == null) {
 -			LOGGER.warn("Runtime mod remapping disabled due to no fabric.remapClasspathFile being specified. You may need to update loom.");
 -			runtimeModRemapping = false;
--		}
--
++		for (ModCandidate candidate : RuntimeModRemapper.remap(candidateMap.values(), ModResolver.getInMemoryFs())) {
++			addMod(candidate);
+ 		}
+ 
 -		if (runtimeModRemapping) {
 -			for (ModCandidate candidate : RuntimeModRemapper.remap(candidateMap.values(), ModResolver.getInMemoryFs())) {
 -				addMod(candidate);
@@ -2453,16 +2481,48 @@ index 772d70c73ab4ae5afd5546a9666573ee19f2e2c0..70bf2fc6c8f043371a9a0f2e5fd8b7c0
 -			for (ModCandidate candidate : candidateMap.values()) {
 -				addMod(candidate);
 -			}
-+		for (ModCandidate candidate : RuntimeModRemapper.remap(candidateMap.values(), ModResolver.getInMemoryFs())) {
-+			addMod(candidate);
++		try {
++			new File("remapped-mods").mkdirs();
++			PathUtils.cleanDirectory(Paths.get("remapped-mods"));
++			Files.walkFileTree(ModResolver.getInMemoryFs().getPath("remapped-mods"), EnumSet.noneOf(FileVisitOption.class),
++					Integer.MAX_VALUE, new SimpleFileVisitor<>() {
++				@Override
++				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
++					Files.copy(file, Paths.get("remapped-mods", String.valueOf(file.getFileName())));
++					return super.visitFile(file, attrs);
++				}
++			});
++		} catch (IOException e) {
++			System.out.println(e.toString());
  		}
  	}
  
 diff --git a/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java b/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
-index 9939465b20bb6512bfe6ad181b8e22052df1c510..2007cc0c3753b43fccd9a452882f87504ab4af2c 100644
+index 9939465b20bb6512bfe6ad181b8e22052df1c510..2e3a937767dd637b45d0357ff2c665c86261edae 100644
 --- a/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
 +++ b/src/main/java/net/fabricmc/loader/discovery/RuntimeModRemapper.java
-@@ -169,7 +169,7 @@ public final class RuntimeModRemapper {
+@@ -41,6 +41,7 @@ import java.io.IOException;
+ import java.io.InputStreamReader;
+ import java.io.StringWriter;
+ import java.nio.charset.StandardCharsets;
++import java.nio.file.FileAlreadyExistsException;
+ import java.nio.file.FileSystem;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+@@ -102,7 +103,11 @@ public final class RuntimeModRemapper {
+ 			//Done in a 2nd loop as we need to make sure all the inputs are present before remapping
+ 			for (ModCandidate mod : modsToRemap) {
+ 				RemapInfo info = infoMap.get(mod);
+-				info.outputPath = fileSystem.getPath(UUID.randomUUID() + ".jar");
++				try {
++					fileSystem.provider().createDirectory(fileSystem.getPath("remapped-mods/"));
++				} catch (FileAlreadyExistsException ignored) {
++				}
++				info.outputPath = fileSystem.getPath("remapped-mods", mod.getInfo().getId() + "-" + UUID.randomUUID() + ".jar");
+ 				OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(info.outputPath).build();
+ 
+ 				FileSystemUtil.FileSystemDelegate delegate = FileSystemUtil.getJarFileSystem(info.inputPath, false);
+@@ -169,7 +174,7 @@ public final class RuntimeModRemapper {
  			AccessWidenerReader accessWidenerReader = new AccessWidenerReader(accessWidener);
  			accessWidenerReader.read(bufferedReader, "intermediary");
  
@@ -2471,7 +2531,7 @@ index 9939465b20bb6512bfe6ad181b8e22052df1c510..2007cc0c3753b43fccd9a452882f8750
  			AccessWidener remapped = accessWidenerRemapper.remap();
  			AccessWidenerWriter accessWidenerWriter = new AccessWidenerWriter(remapped);
  
-@@ -184,14 +184,10 @@ public final class RuntimeModRemapper {
+@@ -184,14 +189,10 @@ public final class RuntimeModRemapper {
  
  	private static List<Path> getRemapClasspath() throws IOException {
  		String remapClasspathFile = System.getProperty(SystemProperties.REMAP_CLASSPATH_FILE);
@@ -2490,7 +2550,7 @@ index 9939465b20bb6512bfe6ad181b8e22052df1c510..2007cc0c3753b43fccd9a452882f8750
  				.collect(Collectors.toList());
  	}
 diff --git a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java b/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
-index 99595029a26a6badb8eb5755ceddb2c052b69d66..6a72e16679dece603194307dabede06f5294975d 100644
+index 99595029a26a6badb8eb5755ceddb2c052b69d66..458f473cad11c1ff07b14a7256ef284da0c51a46 100644
 --- a/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
 +++ b/src/main/java/net/fabricmc/loader/game/MinecraftGameProvider.java
 @@ -16,6 +16,7 @@
@@ -2510,6 +2570,15 @@ index 99595029a26a6badb8eb5755ceddb2c052b69d66..6a72e16679dece603194307dabede06f
  				.setName(getGameName())
  				.build())
  		);
+@@ -109,7 +110,7 @@ public class MinecraftGameProvider implements GameProvider {
+ 
+ 	@Override
+ 	public boolean isObfuscated() {
+-		return true; // generally yes...
++		return false; // generally yes... // Hotpur - no it isn't
+ 	}
+ 
+ 	@Override
 @@ -135,7 +136,7 @@ public class MinecraftGameProvider implements GameProvider {
  		if (envType == EnvType.CLIENT) {
  			entrypointClasses = Arrays.asList("net.minecraft.client.main.Main", "net.minecraft.client.MinecraftApplet", "com.mojang.minecraft.MinecraftApplet");
@@ -2542,19 +2611,19 @@ index 1ab9e023b57f79917016ee147a2b9bbf9e9e24da..8faed48146c4dc02beb06ea8e74a6cbe
  		Launch.blackboard.put(SystemProperties.DEVELOPMENT, isDevelopment);
  		setProperties(Launch.blackboard);
  
-diff --git a/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java b/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
-index 499734277776a7db5e0e4ac3a5b4f982ae993817..69493afbd16520abed3bacd37d99f621553c461f 100644
---- a/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
-+++ b/src/main/java/net/fabricmc/loader/launch/common/FabricLauncherBase.java
-@@ -74,7 +74,7 @@ public abstract class FabricLauncherBase implements FabricLauncher {
- 		TinyTree mappings = launcher.isDevelopment() ? null : mappingConfiguration.getMappings();
- 		String targetNamespace = mappingConfiguration.getTargetNamespace();
+diff --git a/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java b/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
+index 7525f174c2a77ec2daa4220da6c94de80b7c8f5a..3d094d90fffaa105736559299f5b139778598166 100644
+--- a/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
++++ b/src/main/java/net/fabricmc/loader/launch/common/FabricMixinBootstrap.java
+@@ -58,7 +58,7 @@ public final class FabricMixinBootstrap {
+ 			throw new RuntimeException("FabricMixinBootstrap has already been initialized!");
+ 		}
  
--		if (mappings != null && mappings.getMetadata().getNamespaces().contains(targetNamespace)) {
-+		if (false) {
- 			LOGGER.debug("Fabric mapping file detected, applying...");
+-		if (FabricLauncherBase.getLauncher().isDevelopment()) {
++		if (true) { // Hotpur - yes we need them
+ 			MappingConfiguration mappingConfiguration = FabricLauncherBase.getLauncher().getMappingConfiguration();
+ 			TinyTree mappings = mappingConfiguration.getMappings();
  
- 			try {
 diff --git a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java b/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
 index a01b6b1de85aa801a9fb0ed6e88aa81c14d9752c..6117560b9471f5daf494ece8392602a1dd87e801 100644
 --- a/src/main/java/net/fabricmc/loader/launch/common/MappingConfiguration.java
@@ -2592,6 +2661,19 @@ index 93988b246969cc8ae48f35617ef30fc0a526a339..0b13fe2739c7bc97aa9a2aa5ed63407d
 -		// TODO: Won't work outside of Yarn
 -		return isDevelopment ? "named" : "intermediary";
 +		return "spigot";
+ 	}
+ 
+ 	@Override
+diff --git a/src/main/java/net/fabricmc/loader/launch/knot/MixinServiceKnot.java b/src/main/java/net/fabricmc/loader/launch/knot/MixinServiceKnot.java
+index e07728f917e1ddc002cb7113f5424081d117e3e6..443c87cc77ab643976da49ba501a10ea70a73149 100644
+--- a/src/main/java/net/fabricmc/loader/launch/knot/MixinServiceKnot.java
++++ b/src/main/java/net/fabricmc/loader/launch/knot/MixinServiceKnot.java
+@@ -213,7 +213,7 @@ public class MixinServiceKnot implements IMixinService, IClassProvider, IClassBy
+ 
+ 	@Override
+ 	public MixinEnvironment.CompatibilityLevel getMinCompatibilityLevel() {
+-		return MixinEnvironment.CompatibilityLevel.JAVA_8;
++		return MixinEnvironment.CompatibilityLevel.JAVA_11;
  	}
  
  	@Override
