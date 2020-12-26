@@ -27,7 +27,7 @@ index 621470e670360de7ff6308a7b6046dd589bd9160..46bbc9e33a8409baca849f785f8a6252
  !/README.md
 -!/settings.gradle
 diff --git a/build.gradle b/build.gradle
-index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0ffb2abbb4 100644
+index e075d374b2322d13b2bed698d51a4f75954a1ead..2725265f023806805194012c4a8b7e35b91f0459 100644
 --- a/build.gradle
 +++ b/build.gradle
 @@ -1,15 +1,16 @@
@@ -80,7 +80,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0f
  	}
  	implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
  	implementation 'net.fabricmc:tiny-remapper:0.3.0.70'
-@@ -68,6 +73,15 @@ dependencies {
+@@ -68,6 +73,13 @@ dependencies {
  
  	// Unit testing for mod metadata
  	testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
@@ -88,15 +88,13 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0f
 +	// Extra dependencies
 +	implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'
 +	implementation 'com.github.ishlandbukkit:jbsdiff:deff66b794'
-+	// https://mvnrepository.com/artifact/org.tukaani/xz
-+	implementation group: 'org.tukaani', name: 'xz', version: '1.8'
 +	implementation 'org.apache.logging.log4j:log4j-core:2.8.1'
 +	implementation 'org.apache.logging.log4j:log4j-iostreams:2.8.1'
 +	implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
  }
  
  processResources {
-@@ -83,6 +97,9 @@ java {
+@@ -83,6 +95,9 @@ java {
  	// if it is present.
  	// If you remove this task, sources will not be generated.
  	withSourcesJar()
@@ -106,7 +104,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0f
  }
  
  jar {
-@@ -97,14 +114,14 @@ jar {
+@@ -97,14 +112,14 @@ jar {
  	}
  }
  
@@ -123,7 +121,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0f
  	from('src/main/resources/fabric-installer.launchwrapper.json') {
  		rename { "${archivesBaseName}-${version}.launchwrapper.json" }
  	}
-@@ -116,13 +133,6 @@ tasks.build.dependsOn "copyJsonLw"
+@@ -116,13 +131,6 @@ tasks.build.dependsOn "copyJsonLw"
  
  tasks.withType(JavaCompile).configureEach {
  	it.options.encoding = "UTF-8"
@@ -137,7 +135,7 @@ index e075d374b2322d13b2bed698d51a4f75954a1ead..a7c2a65c0bfdea654f5f7a82f28bed0f
  }
  
  javadoc {
-@@ -157,59 +167,59 @@ task javadocJar(type: Jar) {
+@@ -157,59 +165,59 @@ task javadocJar(type: Jar) {
  
  build.dependsOn javadocJar
  

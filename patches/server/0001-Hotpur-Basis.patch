@@ -96,22 +96,15 @@ index 0000000000000000000000000000000000000000..6fb295ad61ca05a54488da855f36b5da
 +    exclude "org/bukkit/craftbukkit/inventory/ItemStack*Test.class"
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
-index 4d8740678049aa749b42618470e9cc838555528d..fcc053b2bb0562ac08c5e8fd4766726f23b50c66 100644
+index 4d8740678049aa749b42618470e9cc838555528d..095c89809d265d415269c18ca877b5fc918181b3 100644
 --- a/src/main/java/com/destroystokyo/paper/Metrics.java
 +++ b/src/main/java/com/destroystokyo/paper/Metrics.java
-@@ -1,5 +1,6 @@
- package com.destroystokyo.paper;
- 
-+import com.ishland.hotpur.server.HotpurVersioning;
- import net.minecraft.server.MinecraftServer;
- import org.bukkit.Bukkit;
- import org.bukkit.configuration.file.YamlConfiguration;
-@@ -603,7 +604,7 @@ public class Metrics {
+@@ -603,7 +603,7 @@ public class Metrics {
  
                  metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
                  metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : (PaperConfig.isProxyOnlineMode() ? "bungee" : "offline"))); // Purpur
 -                metrics.addCustomChart(new Metrics.SimplePie("purpur_version", () -> (Metrics.class.getPackage().getImplementationVersion() != null) ? Metrics.class.getPackage().getImplementationVersion() : "unknown")); // Purpur
-+                metrics.addCustomChart(new Metrics.SimplePie("purpur_version", () -> HotpurVersioning.implementationVersion)); // Purpur
++                metrics.addCustomChart(new Metrics.SimplePie("purpur_version", () -> com.ishland.hotpur.server.HotpurVersioning.implementationVersion)); // Purpur // Hotpur
  
                  metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
                      Map<String, Map<String, Integer>> map = new HashMap<>();
@@ -287,18 +280,10 @@ index dbda80c9a57dc7a1882a00020b407dd69a187649..8e9f2e3b166beeb0ce4acd8914486950
          serverModName = getString("settings.server-mod-name", serverModName);
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b3bc2d908a028fe182f4be2ed4d2bb6a1e9ec5cb..d000a94e9eb40e5ea6831863221d80521e2f609b 100644
+index b3bc2d908a028fe182f4be2ed4d2bb6a1e9ec5cb..55d29c9c3572ff49faabf3f8df3ee36451b4b72a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableSet;
- import com.google.common.collect.Iterators;
- import com.google.common.collect.Lists;
- import com.google.common.collect.MapMaker;
-+import com.ishland.hotpur.server.HotpurVersioning;
- import com.mojang.authlib.GameProfile;
- import com.mojang.brigadier.StringReader;
- import com.mojang.brigadier.exceptions.CommandSyntaxException;
-@@ -232,7 +233,7 @@ import javax.annotation.Nullable; // Paper
+@@ -232,7 +232,7 @@ import javax.annotation.Nullable; // Paper
  import javax.annotation.Nonnull; // Paper
  
  public final class CraftServer implements Server {
@@ -307,38 +292,29 @@ index b3bc2d908a028fe182f4be2ed4d2bb6a1e9ec5cb..d000a94e9eb40e5ea6831863221d8052
      private final String serverVersion;
      private final String bukkitVersion = Versioning.getBukkitVersion();
      private final Logger logger = Logger.getLogger("Minecraft");
-@@ -284,7 +285,7 @@ public final class CraftServer implements Server {
+@@ -284,7 +284,7 @@ public final class CraftServer implements Server {
                  return player.getBukkitEntity();
              }
          }));
 -        this.serverVersion = CraftServer.class.getPackage().getImplementationVersion();
-+        this.serverVersion = HotpurVersioning.implementationVersion;
++        this.serverVersion = com.ishland.hotpur.server.HotpurVersioning.implementationVersion; // Hotpur
  
          Bukkit.setServer(this);
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index a5394b04a6406323fe0f69c27b07fff4ffc14224..f058ac5c16c6317a0d9b8a9e34c9783fb1f99b1a 100644
+index a5394b04a6406323fe0f69c27b07fff4ffc14224..774101087d55cc4bb064bca14d7392236d01aec4 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -10,6 +10,8 @@ import java.util.List;
- import java.util.concurrent.TimeUnit;
- import java.util.logging.Level;
- import java.util.logging.Logger;
-+
-+import com.ishland.hotpur.server.HotpurVersioning;
- import joptsimple.OptionParser;
- import joptsimple.OptionSet;
- import net.minecrell.terminalconsole.TerminalConsoleAppender; // Paper
-@@ -210,7 +212,7 @@ public class Main {
+@@ -210,7 +210,7 @@ public class Main {
                  Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
              }
          } else if (options.has("v")) {
 -            System.out.println(CraftServer.class.getPackage().getImplementationVersion());
-+            System.out.println(HotpurVersioning.implementationVersion);
++            System.out.println(com.ishland.hotpur.server.HotpurVersioning.implementationVersion); // Hotpur
          } else {
              // Do you love Java using + and ! as string based identifiers? I sure do!
              String path = new File(".").getAbsolutePath();
-@@ -259,12 +261,10 @@ public class Main {
+@@ -259,12 +259,10 @@ public class Main {
                      System.setProperty(TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false"); // Paper
                  }
  
@@ -347,15 +323,14 @@ index a5394b04a6406323fe0f69c27b07fff4ffc14224..f058ac5c16c6317a0d9b8a9e34c9783f
 -
 +                if (System.getProperty("IReallyKnowWhatIAmDoingISwear") == null) { // Purpur // Hotpur
                      Calendar deadline = Calendar.getInstance();
--                    deadline.add(Calendar.DAY_OF_YEAR, -28);
+                     deadline.add(Calendar.DAY_OF_YEAR, -28);
 -                    if (buildDate.before(deadline.getTime())) {
-+                    deadline.add(Calendar.DAY_OF_YEAR, -1);
-+                    if (HotpurVersioning.buildTime.before(deadline.getTime())) {
++                    if (com.ishland.hotpur.server.HotpurVersioning.buildTime.before(deadline.getTime())) { // Hotpur
                          // Paper start - This is some stupid bullshit
                          System.err.println("*** Warning, you've not updated in a while! ***");
                          System.err.println("*** Please download a new build ***"); // Paper // Tuinity
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/CraftMagicNumbers.java b/src/main/java/org/bukkit/craftbukkit/util/CraftMagicNumbers.java
-index 65a85f226822bb2b7f9a3a67654d3f40d7c4bfa2..3ee4e52f5dd86e647669dc81dc98c62c44656e0a 100644
+index 65a85f226822bb2b7f9a3a67654d3f40d7c4bfa2..09b965f87451597001ebdd1967cfbedbc337f4ae 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/CraftMagicNumbers.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/CraftMagicNumbers.java
 @@ -353,7 +353,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
@@ -363,77 +338,55 @@ index 65a85f226822bb2b7f9a3a67654d3f40d7c4bfa2..3ee4e52f5dd86e647669dc81dc98c62c
      @Override
      public com.destroystokyo.paper.util.VersionFetcher getVersionFetcher() {
 -        return new net.pl3x.purpur.PurpurVersionFetcher();
-+        return new com.ishland.hotpur.server.HotpurVersionFetcher();
++        return new com.ishland.hotpur.server.HotpurVersionFetcher(); // Hotpur
      }
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-index 13b98439320ac1401a920c01d7cf5a4b3a23deff..f17006ac97019afe6825f19a2c46e9258a6ecd03 100644
+index 13b98439320ac1401a920c01d7cf5a4b3a23deff..47ea11decb09f11b6e1cdca66bfae5ba97b388cc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-@@ -2,15 +2,21 @@ package org.bukkit.craftbukkit.util;
- 
- import java.io.IOException;
- import java.io.InputStream;
-+import java.nio.charset.StandardCharsets;
- import java.util.Properties;
- import java.util.logging.Level;
- import java.util.logging.Logger;
-+
-+import com.ishland.hotpur.server.HotpurVersioning;
-+import org.apache.commons.io.IOUtils;
- import org.bukkit.Bukkit;
+@@ -9,8 +9,10 @@ import org.bukkit.Bukkit;
  
  public final class Versioning {
      public static String getBukkitVersion() {
 -        String result = "Unknown-Version";
-+        String result = HotpurVersioning.specificationVersion;
- 
 +        // Hotpur - replace impl
++        String result = com.ishland.hotpur.server.HotpurVersioning.specificationVersion;
+ 
 +        /*
          InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/net.pl3x.purpur/purpur-api/pom.properties"); // Tuinity // Purpur
          Properties properties = new Properties();
  
-@@ -23,7 +29,9 @@ public final class Versioning {
+@@ -23,6 +25,7 @@ public final class Versioning {
                  Logger.getLogger(Versioning.class.getName()).log(Level.SEVERE, "Could not get Bukkit version!", ex);
              }
          }
-+        */
++        */ // Hotpur end
  
          return result;
-+        // Hotpur end
      }
- }
 diff --git a/src/main/resources/log4j2.xml b/src/main/resources/log4j2.xml
-index 8af159abd3d0cc94cf155fec5b384c42f69551bf..cc9da9e3804d3703355ee08532c51ad56d952f85 100644
+index 8af159abd3d0cc94cf155fec5b384c42f69551bf..155d5cdd198656b8eb9c2cfe4fab9ac07fbced62 100644
 --- a/src/main/resources/log4j2.xml
 +++ b/src/main/resources/log4j2.xml
 @@ -1,5 +1,5 @@
  <?xml version="1.0" encoding="UTF-8"?>
 -<Configuration status="WARN" packages="com.mojang.util" shutdownHook="disable">
-+<Configuration status="FATAL" packages="com.mojang.util" shutdownHook="disable">
++<Configuration status="FATAL" packages="com.mojang.util" shutdownHook="disable"> <!-- Hotpur -->
      <Appenders>
          <Queue name="ServerGuiConsole">
              <PatternLayout pattern="[%d{HH:mm:ss} %level]: %msg%n" />
 diff --git a/src/test/java/org/bukkit/support/DummyServer.java b/src/test/java/org/bukkit/support/DummyServer.java
-index 886e462defb4bd15063e4a1ce04fd7bb0df75b2a..04c8d985fa83c9aed9c8bf077c37733213077ce4 100644
+index 886e462defb4bd15063e4a1ce04fd7bb0df75b2a..4acce466b8d02834ecb9aa61dbfe6d0f876bc6b6 100644
 --- a/src/test/java/org/bukkit/support/DummyServer.java
 +++ b/src/test/java/org/bukkit/support/DummyServer.java
-@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
- import java.lang.reflect.Proxy;
- import java.util.HashMap;
- import java.util.logging.Logger;
-+
-+import com.ishland.hotpur.server.HotpurVersioning;
- import org.bukkit.Bukkit;
- import org.bukkit.Material;
- import org.bukkit.NamespacedKey;
-@@ -46,7 +48,7 @@ public final class DummyServer implements InvocationHandler {
+@@ -46,7 +46,7 @@ public final class DummyServer implements InvocationHandler {
                      new MethodHandler() {
                          @Override
                          public Object handle(DummyServer server, Object[] args) {
 -                            return DummyServer.class.getPackage().getImplementationVersion();
-+                            return HotpurVersioning.implementationVersion;
++                            return com.ishland.hotpur.server.HotpurVersioning.implementationVersion; // Hotpur
                          }
                      }
                  );
