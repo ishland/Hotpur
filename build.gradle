@@ -95,6 +95,10 @@ configure (subprojects - project(":fabric-loader")) {
         options.encoding = 'UTF-8'
     }
 
+    tasks.withType(Javadoc) {
+        failOnError false
+    }
+
     test {
         useJUnit()
         maxParallelForks = 1
