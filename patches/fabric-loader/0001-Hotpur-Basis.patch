@@ -2652,7 +2652,7 @@ index a01b6b1de85aa801a9fb0ed6e88aa81c14d9752c..6117560b9471f5daf494ece8392602a1
  	}
  }
 diff --git a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
-index 93988b246969cc8ae48f35617ef30fc0a526a339..0b13fe2739c7bc97aa9a2aa5ed63407d0096550c 100644
+index 6ec9ff04bdfb7b82ecebc531eb519760c7a4e42f..2a18a1fb720bbdaf35cd9176366020e937424bcb 100644
 --- a/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
 +++ b/src/main/java/net/fabricmc/loader/launch/knot/Knot.java
 @@ -52,6 +52,7 @@ public final class Knot extends FabricLauncherBase {
